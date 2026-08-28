@@ -1,24 +1,27 @@
 // Background Service Worker — telegram-ai-assistant
 // Handles AI API requests and message passing with content scripts
 
-import { isBlacklisted } from '@/lib/blacklist';
+import { decrypt, migrateApiKey } from '../lib/crypto';
 
 console.log('[TG-AI] Background service worker started');
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
     console.log('[TG-AI] Extension installed');
-    // Set default settings
+    // Set default settings (no apiKey until user configures one)
     chrome.storage.local.set({
       provider: 'openai',
       model: 'gpt-4o-mini',
-      apiKey: '',
       enabled: true,
       autoTrigger: false,
       suggestionCount: 3,
       systemPrompt: '',
       chatBlacklist: [],
     });
+  }
+  if (details.reason === 'update') {
+    // Migrate legacy plaintext apiKey → encrypted apiKeyEnc
+    migrateApiKey();
   }
 });
 
@@ -32,9 +35,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'GET_SETTINGS') {
-    chrome.storage.local.get(null, (settings) => {
-      sendResponse(settings);
-    });
+    getSettingsWithDecryptedKey()
+      .then(sendResponse)
+      .catch((err) => sendResponse({ error: err.message }));
     return true;
   }
 
@@ -67,6 +70,28 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 });
+
+/** Merge local settings and decrypt apiKeyEnc → apiKey for callers */
+async function getSettingsWithDecryptedKey(): Promise<Record<string, unknown>> {
+  const settings = await new Promise<Record<string, unknown>>((r) =>
+    chrome.storage.local.get(null, r),
+  );
+
+  if (settings.apiKeyEnc) {
+    try {
+      settings.apiKey = await decrypt(settings.apiKeyEnc as string);
+    } catch (err) {
+      console.error('[TG-AI] Failed to decrypt apiKey:', err);
+      settings.apiKey = '';
+    }
+  }
+
+  // Strip internal crypto fields
+  delete settings.apiKeyEnc;
+  delete settings._cryptoKey;
+
+  return settings;
+}
 
 async function handleGenerateReply(payload: {
   messages: Array<{ author: string; text: string; timestamp: string }>;
