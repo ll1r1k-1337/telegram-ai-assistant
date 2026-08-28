@@ -47,10 +47,14 @@ export interface Settings {
   autoTrigger: boolean;
   suggestionCount: number;
   systemPrompt: string;
+  /** Chat names excluded from AI suggestions (blacklist always wins over whitelist) */
+  chatBlacklist: string[];
 }
 
 /** Messages between content script and background */
 export type ExtensionMessage =
   | { type: 'GENERATE_REPLY'; payload: ChatContext }
   | { type: 'GET_SETTINGS' }
-  | { type: 'SETTINGS_UPDATED'; payload: Partial<Settings> };
+  | { type: 'SETTINGS_UPDATED'; payload: Partial<Settings> }
+  | { type: 'CHECK_BLACKLIST'; payload: { chatName: string } }
+  | { type: 'TOGGLE_BLACKLIST'; payload: { chatName: string; blocked: boolean } };
