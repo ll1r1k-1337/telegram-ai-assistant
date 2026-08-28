@@ -1,4 +1,4 @@
-import type { ChatMessage } from '../types';
+import type { ChatContext, ChatIdentity, ChatMessage, ForwardInfo, MediaType } from '@/lib/types';
 
 /**
  * Selectors for Telegram Web K-version DOM elements.
@@ -150,6 +150,83 @@ export function getLastMessages(
     if (msg) parsed.push(msg);
   }
 
-  // Return only the last N (chronological order preserved)
-  return parsed.slice(-safeN);
+  if (authors.size >= 2) return 'group';
+  return 'private';
+}
+
+/** Extract chat name from a header element. */
+export function extractChatName(header: Element): string {
+  const peerTitle = header.querySelector('.peer-title');
+  if (peerTitle?.textContent?.trim()) return peerTitle.textContent.trim();
+
+  const h3 = header.querySelector('h3');
+  if (h3?.textContent?.trim()) return h3.textContent.trim();
+
+  return 'Unknown Chat';
+}
+
+/* --- Chat identity (for whitelist filtering) --- */
+
+/**
+ * Extract the numeric peer/chat ID from a Telegram Web URL hash.
+ *
+ * Patterns handled:
+ *   https://web.telegram.org/k/#-1001234567890          -> "-1001234567890"
+ *   https://web.telegram.org/k/#@username                -> "@username"
+ *   https://web.telegram.org/a/#-1001234567890           -> "-1001234567890"
+ *   https://web.telegram.org/z/#-4567890                 -> "-4567890"
+ *   (no hash / empty hash)                               -> null
+ */
+export function extractChatIdFromUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const hash = u.hash.replace(/^#/, '');
+    if (!hash) return null;
+    // Telegram Web puts the peer identifier right after #
+    // It can be a numeric id (possibly negative), or @username
+    const match = hash.match(/^(-?\d+|@[\w]+)/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build a ChatIdentity from the current page URL and DOM header.
+ * Designed for content script use: call with `window.location.href`
+ * and a reference to the chat header element.
+ */
+export function getCurrentChatIdentity(
+  locationHref: string,
+  headerElement: Element | null,
+): ChatIdentity {
+  const id = extractChatIdFromUrl(locationHref);
+  const name = headerElement ? extractChatName(headerElement) : 'Unknown Chat';
+  return { id, name };
+}
+
+/** Build a complete ChatContext from DOM elements. */
+export function buildChatContext(messagesContainer: Element, headerElement: Element): ChatContext {
+  return {
+    chatName: extractChatName(headerElement),
+    chatType: detectChatType(messagesContainer),
+    messages: parseMessages(messagesContainer),
+  };
+}
+
+/**
+ * Build a complete ChatContext including chat identity (for whitelist filtering).
+ * Prefer this over buildChatContext when the content script needs identity info.
+ */
+export function buildChatContextWithIdentity(
+  messagesContainer: Element,
+  headerElement: Element,
+  locationHref: string,
+): ChatContext {
+  return {
+    chatName: extractChatName(headerElement),
+    chatType: detectChatType(messagesContainer),
+    messages: parseMessages(messagesContainer),
+    chatIdentity: getCurrentChatIdentity(locationHref, headerElement),
+  };
 }

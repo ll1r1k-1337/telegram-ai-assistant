@@ -6,8 +6,13 @@ import {
   extractTimestamp,
   extractReplyTo,
   parseMessageElement,
-  findBubbles,
-  getLastMessages,
+  parseMessages,
+  detectChatType,
+  extractChatName,
+  buildChatContext,
+  extractChatIdFromUrl,
+  getCurrentChatIdentity,
+  buildChatContextWithIdentity,
 } from './parser';
 
 /** Helper: build a Telegram-K-style message bubble */
@@ -270,5 +275,106 @@ describe('getLastMessages', () => {
     const result = getLastMessages(undefined, container);
     expect(result).toHaveLength(15);
     expect(result[0].text).toBe('m10');
+  });
+});
+
+/* ─── extractChatIdFromUrl ─────────────────────────────── */
+
+describe('extractChatIdFromUrl', () => {
+  it('extracts negative numeric id from /k/ URL', () => {
+    expect(extractChatIdFromUrl('https://web.telegram.org/k/#-1001234567890')).toBe(
+      '-1001234567890',
+    );
+  });
+
+  it('extracts positive numeric id', () => {
+    expect(extractChatIdFromUrl('https://web.telegram.org/k/#777000')).toBe('777000');
+  });
+
+  it('extracts @username', () => {
+    expect(extractChatIdFromUrl('https://web.telegram.org/k/#@durov')).toBe('@durov');
+  });
+
+  it('extracts id from /a/ URL', () => {
+    expect(extractChatIdFromUrl('https://web.telegram.org/a/#-1001234567890')).toBe(
+      '-1001234567890',
+    );
+  });
+
+  it('extracts id from /z/ URL', () => {
+    expect(extractChatIdFromUrl('https://web.telegram.org/z/#-4567890')).toBe('-4567890');
+  });
+
+  it('returns null for empty hash', () => {
+    expect(extractChatIdFromUrl('https://web.telegram.org/k/')).toBeNull();
+  });
+
+  it('returns null for hash with no id', () => {
+    expect(extractChatIdFromUrl('https://web.telegram.org/k/#')).toBeNull();
+  });
+
+  it('returns null for invalid URL', () => {
+    expect(extractChatIdFromUrl('not a url')).toBeNull();
+  });
+
+  it('handles hash with extra path segments', () => {
+    expect(extractChatIdFromUrl('https://web.telegram.org/k/#-1001234567890/42')).toBe(
+      '-1001234567890',
+    );
+  });
+});
+
+/* ─── getCurrentChatIdentity ───────────────────────────── */
+
+describe('getCurrentChatIdentity', () => {
+  it('returns id from URL and name from header', () => {
+    const header = el('<div><span class="peer-title">Рабочий чат</span></div>');
+    const identity = getCurrentChatIdentity('https://web.telegram.org/k/#-1001234567890', header);
+    expect(identity.id).toBe('-1001234567890');
+    expect(identity.name).toBe('Рабочий чат');
+  });
+
+  it('returns null id when no hash', () => {
+    const header = el('<div><span class="peer-title">Чат</span></div>');
+    const identity = getCurrentChatIdentity('https://web.telegram.org/k/', header);
+    expect(identity.id).toBeNull();
+    expect(identity.name).toBe('Чат');
+  });
+
+  it('returns "Unknown Chat" when header is null', () => {
+    const identity = getCurrentChatIdentity('https://web.telegram.org/k/#123456', null);
+    expect(identity.id).toBe('123456');
+    expect(identity.name).toBe('Unknown Chat');
+  });
+});
+
+/* ─── buildChatContextWithIdentity ─────────────────────── */
+
+describe('buildChatContextWithIdentity', () => {
+  it('includes chatIdentity in context', () => {
+    const msgs = el(`<div>
+      <div class="bubble"><span class="peer-title">Алиса</span><span class="message">Привет!</span></div>
+    </div>`);
+    const header = el('<div><span class="peer-title">Алиса</span></div>');
+    const ctx = buildChatContextWithIdentity(
+      msgs,
+      header,
+      'https://web.telegram.org/k/#-1009876543',
+    );
+    expect(ctx.chatName).toBe('Алиса');
+    expect(ctx.chatIdentity).toBeDefined();
+    expect(ctx.chatIdentity!.id).toBe('-1009876543');
+    expect(ctx.chatIdentity!.name).toBe('Алиса');
+  });
+
+  it('still parses messages correctly', () => {
+    const msgs = el(`<div>
+      <div class="bubble is-out"><span class="message">Тест</span></div>
+    </div>`);
+    const header = el('<div><h3>Канал</h3></div>');
+    const ctx = buildChatContextWithIdentity(msgs, header, 'https://web.telegram.org/k/#-100111');
+    expect(ctx.messages.length).toBe(1);
+    expect(ctx.messages[0].text).toBe('Тест');
+    expect(ctx.chatIdentity!.id).toBe('-100111');
   });
 });
