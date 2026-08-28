@@ -5,8 +5,7 @@ export {
   extractTimestamp,
   extractReplyTo,
   parseMessageElement,
-  parseMessages,
-  detectChatType,
-  extractChatName,
-  buildChatContext,
+  findBubbles,
+  findMessagesContainer,
+  getLastMessages,
 } from './parser';

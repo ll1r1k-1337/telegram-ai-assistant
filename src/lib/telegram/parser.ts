@@ -1,200 +1,155 @@
-import type { ChatContext, ChatMessage, ForwardInfo, MediaType } from '@/lib/types';
+import type { ChatMessage } from '../types';
 
-/* --- Message-level helpers --- */
+/**
+ * Selectors for Telegram Web K-version DOM elements.
+ *
+ * K-version (web.telegram.org/k/) wraps every message in a `.bubble`
+ * inside `.bubbles-inner`.  The A-version uses similar `.message`
+ * wrappers — we query both so the parser works on either.
+ */
+const SEL = {
+  /** Container that holds all message bubbles */
+  messagesContainer:
+    '.bubbles-inner, .messages-container, #column-center .bubbles',
+  /** A single message bubble */
+  bubble: '.bubble:not(.is-date):not(.service)',
+  /** Text content inside a bubble */
+  text: '.message .text-content, .text-content, .message-text, .message',
+  /** Author name element */
+  author: '.peer-title, .name-peer, .message-author, .name',
+  /** Timestamp element */
+  time: '.time .i18n, .time, time, .message-time',
+  /** Reply block inside a bubble */
+  reply: '.reply, .reply-markup',
+} as const;
 
-/** Extract text content from a message element. */
+/**
+ * Extract the visible text from a message bubble.
+ * Returns empty string for media-only messages (filtered out upstream).
+ */
 export function extractMessageText(el: Element): string {
-  const selectors = ['.text-content', '.message-text', '.message', '.caption'];
-  for (const sel of selectors) {
-    const node = el.querySelector(sel);
-    if (node?.textContent?.trim()) return node.textContent.trim();
-  }
-  return '';
+  const textEl = el.querySelector(SEL.text);
+  if (!textEl) return '';
+  return (textEl.textContent ?? '').trim();
 }
 
-/** Check if a message element is outgoing (sent by the user). */
+/**
+ * Check whether a message bubble is outgoing (sent by the user).
+ *
+ * K-version marks outgoing bubbles with `.is-out`.
+ */
 export function isOutgoingMessage(el: Element): boolean {
-  if (el.classList.contains('is-out') || el.classList.contains('message-out')) {
-    return true;
-  }
-  // Check parent bubble for .is-out (inner elements inherit outgoing status)
-  const bubble = el.closest('.is-out, .message-out');
-  return bubble !== null;
+  return (
+    el.classList.contains('is-out') ||
+    el.closest('.bubble')?.classList.contains('is-out') === true
+  );
 }
 
-/** Extract author name from a message element. */
+/**
+ * Extract the author name from a message bubble.
+ *
+ * In private chats, outgoing messages rarely show an author element —
+ * we fall back to «Вы» (You) for those.
+ */
 export function extractAuthor(el: Element): string {
-  const peerTitle = el.querySelector('.peer-title');
-  if (peerTitle?.textContent?.trim()) return peerTitle.textContent.trim();
-
-  const name = el.querySelector('.name');
-  if (name?.textContent?.trim()) return name.textContent.trim();
+  const nameEl = el.querySelector(SEL.author);
+  if (nameEl) {
+    const name = (nameEl.textContent ?? '').trim();
+    if (name) return name;
+  }
 
   if (isOutgoingMessage(el)) return 'Вы';
   return 'Unknown';
 }
 
-/** Extract timestamp from a message element. */
+/**
+ * Extract a human-readable timestamp from a message element.
+ *
+ * Prefers the `datetime` attribute on `<time>` tags; falls back
+ * to visible text (e.g. "14:32").
+ */
 export function extractTimestamp(el: Element): string {
-  const time = el.querySelector('time');
-  if (time) {
-    const dt = time.getAttribute('datetime');
-    if (dt) return dt;
-    if (time.textContent?.trim()) return time.textContent.trim();
-  }
+  const timeEl = el.querySelector(SEL.time);
+  if (!timeEl) return '';
 
-  const timeInner = el.querySelector('.time-inner');
-  if (timeInner?.textContent?.trim()) return timeInner.textContent.trim();
-
-  const timeSpan = el.querySelector('.time');
-  if (timeSpan?.textContent?.trim()) return timeSpan.textContent.trim();
-
-  return '';
+  return (
+    timeEl.getAttribute('datetime') ??
+    (timeEl.textContent ?? '').trim()
+  );
 }
 
-/** Extract reply-to text from a message element. */
+/**
+ * Extract the reply-to text from a message, if any.
+ */
 export function extractReplyTo(el: Element): string | undefined {
-  const reply = el.querySelector('.reply');
-  if (!reply) return undefined;
-
-  // Prefer specific sub-selectors
-  const subtitle = reply.querySelector('.reply-subtitle');
-  if (subtitle?.textContent?.trim()) return subtitle.textContent.trim();
-
-  const content = reply.querySelector('.reply-content');
-  if (content?.textContent?.trim()) return content.textContent.trim();
-
-  // Fallback to entire reply block text
-  const text = reply.textContent?.trim();
+  const replyEl = el.querySelector(SEL.reply);
+  if (!replyEl) return undefined;
+  const text = (replyEl.textContent ?? '').trim();
   return text || undefined;
 }
 
-/** Extract forward info from a message element. */
-export function extractForwardInfo(el: Element): ForwardInfo | undefined {
-  const fwd = el.querySelector('.forward') || el.querySelector('.forwarded-header');
-  if (!fwd) return undefined;
-
-  // Try peer-title inside the forward block
-  const peerTitle = fwd.querySelector('.peer-title');
-  if (peerTitle?.textContent?.trim()) {
-    return { from: peerTitle.textContent.trim() };
-  }
-
-  // Fallback to raw text, stripping common prefixes
-  let text = fwd.textContent?.trim() ?? '';
-  text = text.replace(/^Forwarded from\s+/i, '');
-  text = text.replace(/^Переслано от\s+/i, '');
-  return text ? { from: text } : undefined;
-}
-
-/** Check if a message has been edited. */
-export function isEditedMessage(el: Element): boolean {
-  if (el.querySelector('.edited')) return true;
-
-  const timeEl = el.querySelector('.time');
-  if (timeEl?.textContent) {
-    const t = timeEl.textContent.toLowerCase();
-    if (t.includes('edited') || t.includes('ред.')) return true;
-  }
-  return false;
-}
-
-/** Detect media type from a message element. */
-export function detectMediaType(el: Element): MediaType | undefined {
-  const mediaMap: [string, MediaType][] = [
-    ['.media-photo', 'photo'],
-    ['.media-video', 'video'],
-    ['.media-sticker', 'sticker'],
-    ['.sticker-container', 'sticker'],
-    ['.media-voice', 'voice'],
-    ['.document', 'document'],
-    ['.gif', 'gif'],
-    ['.audio', 'audio'],
-  ];
-
-  for (const [selector, type] of mediaMap) {
-    if (el.querySelector(selector)) return type;
-  }
-  return undefined;
-}
-
-/* --- Composite parsers --- */
-
-/** Parse a single message DOM element into a ChatMessage, or null if no text/media. */
+/**
+ * Parse a single message DOM element into a `ChatMessage`.
+ * Returns `null` for non-text messages (media-only, service, etc.).
+ */
 export function parseMessageElement(el: Element): ChatMessage | null {
-  const mediaType = detectMediaType(el);
-  let text = extractMessageText(el);
-
-  // For media-only messages, use placeholder text
-  if (!text && mediaType) {
-    text = `[${mediaType}]`;
-  }
-
+  const text = extractMessageText(el);
   if (!text) return null;
 
-  const msg: ChatMessage = {
+  return {
     author: extractAuthor(el),
     text,
     timestamp: extractTimestamp(el),
     isOutgoing: isOutgoingMessage(el),
     replyTo: extractReplyTo(el),
   };
-
-  const forward = extractForwardInfo(el);
-  if (forward) msg.forward = forward;
-
-  if (isEditedMessage(el)) msg.isEdited = true;
-
-  if (mediaType) msg.mediaType = mediaType;
-
-  return msg;
 }
 
-/** Parse all message elements inside a container. */
-export function parseMessages(container: Element): ChatMessage[] {
-  const nodes = container.querySelectorAll('.message, .bubble');
-  const messages: ChatMessage[] = [];
+/**
+ * Find all message bubble elements inside a container.
+ */
+export function findBubbles(container: Element): Element[] {
+  return Array.from(container.querySelectorAll(SEL.bubble));
+}
 
-  for (const node of nodes) {
-    const msg = parseMessageElement(node);
-    if (msg) messages.push(msg);
+/**
+ * Find the messages container element in the current page.
+ * Returns `null` if Telegram's chat view is not open.
+ */
+export function findMessagesContainer(): Element | null {
+  return document.querySelector(SEL.messagesContainer);
+}
+
+/**
+ * Extract the last N messages from the DOM.
+ *
+ * This is the main entry point for E3-002.
+ *
+ * @param n  Maximum number of messages to return (default 15).
+ *           Clamped to [1, 50] to prevent accidental over-reads.
+ * @param container  Optional — pass a specific container element
+ *                   (useful for testing).  Defaults to auto-detected.
+ * @returns  Array of `ChatMessage` objects, ordered chronologically
+ *           (oldest first), with at most `n` entries.
+ */
+export function getLastMessages(
+  n = 15,
+  container?: Element | null,
+): ChatMessage[] {
+  const safeN = Math.max(1, Math.min(50, Math.round(n)));
+
+  const root = container ?? findMessagesContainer();
+  if (!root) return [];
+
+  const bubbles = findBubbles(root);
+
+  // Parse all bubbles, filtering out non-text ones
+  const parsed: ChatMessage[] = [];
+  for (const bubble of bubbles) {
+    const msg = parseMessageElement(bubble);
+    if (msg) parsed.push(msg);
   }
-  return messages;
-}
 
-/* --- Chat context --- */
-
-/** Detect chat type from the messages container. */
-export function detectChatType(container: Element): 'private' | 'group' | 'channel' {
-  if (container.querySelector('.is-channel')) return 'channel';
-
-  const authors = new Set<string>();
-  const peerTitles = container.querySelectorAll('.peer-title');
-  for (const pt of peerTitles) {
-    const name = pt.textContent?.trim();
-    if (name) authors.add(name);
-  }
-
-  if (authors.size >= 2) return 'group';
-  return 'private';
-}
-
-/** Extract chat name from a header element. */
-export function extractChatName(header: Element): string {
-  const peerTitle = header.querySelector('.peer-title');
-  if (peerTitle?.textContent?.trim()) return peerTitle.textContent.trim();
-
-  const h3 = header.querySelector('h3');
-  if (h3?.textContent?.trim()) return h3.textContent.trim();
-
-  return 'Unknown Chat';
-}
-
-/** Build a complete ChatContext from DOM elements. */
-export function buildChatContext(messagesContainer: Element, headerElement: Element): ChatContext {
-  return {
-    chatName: extractChatName(headerElement),
-    chatType: detectChatType(messagesContainer),
-    messages: parseMessages(messagesContainer),
-  };
+  // Return only the last N (chronological order preserved)
+  return parsed.slice(-safeN);
 }

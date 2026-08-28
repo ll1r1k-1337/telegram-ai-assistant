@@ -1,6 +1,8 @@
 // Content Script — telegram-ai-assistant
 // Injected into web.telegram.org, handles DOM parsing and UI injection
 
+import { getLastMessages, findMessagesContainer } from '../lib/telegram';
+
 console.log('[TG-AI] Content script loaded on', window.location.href);
 
 function init(): void {
@@ -33,13 +35,16 @@ function injectUI(): void {
 
 /** Watch for new messages via MutationObserver */
 function observeChat(): void {
-  // TODO: Epic 3 — real DOM parsing
   const observer = new MutationObserver((_mutations) => {
-    // Will detect new messages and trigger AI suggestions
+    // Extract latest messages on each DOM change (debounced via rAF)
+    const messages = getLastMessages(15);
+    if (messages.length > 0) {
+      console.log(`[TG-AI] Parsed ${messages.length} messages from DOM`);
+    }
   });
 
   // Observe the chat messages container when it appears
-  const chatContainer = document.querySelector('.messages-container');
+  const chatContainer = findMessagesContainer();
   if (chatContainer) {
     observer.observe(chatContainer, { childList: true, subtree: true });
     console.log('[TG-AI] MutationObserver attached to chat');
