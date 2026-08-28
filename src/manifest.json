@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "description": "AI-подсказки по ответам в web.telegram.org",
   "permissions": [
-    "storage",
-    "activeTab"
+    "storage"
   ],
   "host_permissions": [
     "https://web.telegram.org/*"
@@ -43,5 +42,8 @@
     "32": "assets/icon-32.png",
     "48": "assets/icon-48.png",
     "128": "assets/icon-128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; style-src 'self'; object-src 'none'; img-src 'self'"
   }
 }
