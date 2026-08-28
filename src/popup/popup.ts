@@ -1,45 +1,59 @@
-// Popup script — toggle settings + onboarding status
+// Popup script — toggle settings + auth status indicator
 
 const enabledToggle = document.getElementById('enabledToggle') as HTMLInputElement;
 const autoToggle = document.getElementById('autoToggle') as HTMLInputElement;
 const statusDot = document.getElementById('statusDot')!;
 const statusText = document.getElementById('statusText')!;
-const setupBanner = document.getElementById('setupBanner');
+const statusProvider = document.getElementById('statusProvider')!;
 
+/** Provider display names */
+const PROVIDER_LABELS: Record<string, string> = {
+  openai: 'OpenAI',
+  anthropic: 'Anthropic',
+  ollama: 'Ollama',
+  custom: 'Custom',
+};
+
+/** Check if API key is configured (encrypted or plaintext) */
 function hasApiKey(settings: Record<string, unknown>): boolean {
   const provider = (settings.provider as string) ?? 'openai';
+  // Ollama doesn't need an API key
   if (provider === 'ollama') return true;
-  return !!(settings.apiKey);
+  return !!(settings.apiKeyEnc || settings.apiKey);
 }
 
+/** Update status dot + text based on enabled state and auth */
 function updateStatus(enabled: boolean, settings: Record<string, unknown>): void {
-  const onboarded = settings.onboardingCompleted as boolean;
+  const provider = (settings.provider as string) ?? 'openai';
   const keyOk = hasApiKey(settings);
 
-  if (!onboarded || !keyOk) {
-    statusDot.className = 'status-dot unconfigured';
-    statusText.textContent = '\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430';
-    if (setupBanner) setupBanner.style.display = 'block';
-  } else if (!enabled) {
+  if (!enabled) {
     statusDot.className = 'status-dot inactive';
-    statusText.textContent = '\u041e\u0442\u043a\u043b\u044e\u0447\u0435\u043d\u043e';
-    if (setupBanner) setupBanner.style.display = 'none';
+    statusText.textContent = 'Отключено';
+    statusProvider.textContent = '';
+  } else if (!keyOk) {
+    statusDot.className = 'status-dot unconfigured';
+    statusText.textContent = 'API-ключ не настроен';
+    statusProvider.textContent = PROVIDER_LABELS[provider] ?? provider;
   } else {
     statusDot.className = 'status-dot active';
-    statusText.textContent = '\u0410\u043a\u0442\u0438\u0432\u0435\u043d \u043d\u0430 web.telegram.org';
-    if (setupBanner) setupBanner.style.display = 'none';
+    statusText.textContent = 'Активен на web.telegram.org';
+    statusProvider.textContent = PROVIDER_LABELS[provider] ?? provider;
   }
 }
 
+/** Cached settings for toggle handler */
 let cachedSettings: Record<string, unknown> = {};
 
+// Load current settings
 chrome.storage.local.get(null, (result) => {
   cachedSettings = result;
-  enabledToggle.checked = (result.enabled as boolean) ?? true;
-  autoToggle.checked = (result.autoTrigger as boolean) ?? false;
+  enabledToggle.checked = result.enabled ?? true;
+  autoToggle.checked = result.autoTrigger ?? false;
   updateStatus(enabledToggle.checked, result);
 });
 
+// React to settings changes from options page
 chrome.storage.onChanged.addListener((changes) => {
   for (const [key, { newValue }] of Object.entries(changes)) {
     cachedSettings[key] = newValue;
@@ -58,8 +72,4 @@ enabledToggle.addEventListener('change', () => {
 
 autoToggle.addEventListener('change', () => {
   chrome.storage.local.set({ autoTrigger: autoToggle.checked });
-});
-
-setupBanner?.addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('onboarding/index.html') });
 });
