@@ -31,43 +31,23 @@ chrome.storage.local.get(null, async (settings) => {
   }
 });
 
-// Save — encrypt apiKey before storing
-document.getElementById('saveBtn')!.addEventListener('click', async () => {
-  const btn = document.getElementById('saveBtn')!;
-  btn.textContent = '⏳ Сохранение...';
-  btn.setAttribute('disabled', '');
-
-  try {
-    const apiKeyPlain = fields.apiKey.value.trim();
-    const toStore: Record<string, unknown> = {
+// Save
+document.getElementById('saveBtn')!.addEventListener('click', () => {
+  chrome.storage.local.set(
+    {
       provider: fields.provider.value,
+      apiKey: fields.apiKey.value,
       model: fields.model.value,
       baseUrl: fields.baseUrl.value,
       systemPrompt: fields.systemPrompt.value,
       suggestionCount: Number(fields.suggestionCount.value),
-    };
-
-    if (apiKeyPlain) {
-      toStore.apiKeyEnc = await encrypt(apiKeyPlain);
-    } else {
-      toStore.apiKeyEnc = '';
-    }
-
-    await chrome.storage.local.set(toStore);
-    // Clean up any legacy plaintext key
-    await chrome.storage.local.remove('apiKey');
-
-    btn.textContent = '✓ Сохранено';
-    setTimeout(() => {
-      btn.textContent = 'Сохранить';
-      btn.removeAttribute('disabled');
-    }, 1500);
-  } catch (err) {
-    console.error('[TG-AI] Save error:', err);
-    btn.textContent = '✗ Ошибка';
-    setTimeout(() => {
-      btn.textContent = 'Сохранить';
-      btn.removeAttribute('disabled');
-    }, 2000);
-  }
+    },
+    () => {
+      const btn = document.getElementById('saveBtn')!;
+      btn.textContent = '✓ Сохранено';
+      setTimeout(() => {
+        btn.textContent = 'Сохранить';
+      }, 1500);
+    },
+  );
 });

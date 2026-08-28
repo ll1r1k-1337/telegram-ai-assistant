@@ -1,15 +1,12 @@
 // Background Service Worker — telegram-ai-assistant
 // Handles AI API requests and message passing with content scripts
 
-import {
-  STREAM_PORT_NAME,
-  streamOverPort,
-  type StreamCallback,
-} from '../lib/streaming';
-import type { ChatContext, StreamRequest } from '../lib/types';
-
+import type { AuthData } from '../lib/types';
 
 console.log('[TG-AI] Background service worker started');
+
+/** In-memory auth cache (lost on SW restart; persistent copy in storage.session) */
+let cachedAuth: AuthData | null = null;
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
@@ -77,28 +74,55 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     });
     return true;
   }
-});
 
-/** Merge local settings and decrypt apiKeyEnc → apiKey for callers */
-async function getSettingsWithDecryptedKey(): Promise<Record<string, unknown>> {
-  const settings = await new Promise<Record<string, unknown>>((r) =>
-    chrome.storage.local.get(null, r),
-  );
-
-  if (settings.apiKeyEnc) {
-    try {
-      settings.apiKey = await decrypt(settings.apiKeyEnc as string);
-    } catch (err) {
-      console.error('[TG-AI] Failed to decrypt apiKey:', err);
-      settings.apiKey = '';
-    }
+  if (message.type === 'AUTH_EXTRACTED') {
+    handleAuthExtracted(message.payload as AuthData)
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => sendResponse({ error: err.message }));
+    return true;
   }
 
-  // Strip internal crypto fields
-  delete settings.apiKeyEnc;
-  delete settings._cryptoKey;
+  if (message.type === 'GET_AUTH_STATUS') {
+    getAuthStatus()
+      .then(sendResponse)
+      .catch((err) => sendResponse({ error: err.message }));
+    return true;
+  }
+});
 
-  return settings;
+/** Store auth data received from content script */
+async function handleAuthExtracted(authData: AuthData): Promise<void> {
+  cachedAuth = authData;
+
+  // Persist to chrome.storage.session (survives SW restarts within browser session)
+  // Falls back to chrome.storage.local if session is unavailable
+  const storage = chrome.storage.session ?? chrome.storage.local;
+  await storage.set({ authData });
+
+  console.log('[TG-AI] Auth data stored:', {
+    authenticated: authData.authenticated,
+    version: authData.version,
+    userId: authData.userId,
+    dcId: authData.dcId,
+    sourceCount: authData.sources.length,
+    screenLocked: authData.screenLocked,
+    accounts: authData.accounts,
+  });
+}
+
+/** Retrieve current auth status */
+async function getAuthStatus(): Promise<AuthData | null> {
+  if (cachedAuth) return cachedAuth;
+
+  // Try to restore from persistent storage
+  const storage = chrome.storage.session ?? chrome.storage.local;
+  const result = await storage.get('authData');
+  if (result.authData) {
+    cachedAuth = result.authData as AuthData;
+    return cachedAuth;
+  }
+
+  return null;
 }
 
 async function handleGenerateReply(payload: {
@@ -118,11 +142,7 @@ async function handleGenerateReply(payload: {
   // TODO: implement AI provider calls (Epic 4)
   console.log('[TG-AI] Generate reply request:', payload);
   return {
-    suggestions: [
-      'Подсказка 1 (заглушка)',
-      'Подсказка 2 (заглушка)',
-      'Подсказка 3 (заглушка)',
-    ],
+    suggestions: ['Подсказка 1 (заглушка)', 'Подсказка 2 (заглушка)', 'Подсказка 3 (заглушка)'],
   };
 }
 

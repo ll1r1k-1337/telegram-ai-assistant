@@ -1,10 +1,7 @@
 // Content Script — telegram-ai-assistant
 // Injected into web.telegram.org, handles DOM parsing and UI injection
 
-import { getCurrentChatIdentity } from '@/lib/telegram';
-import type { ChatIdentity } from '@/lib/types';
-
-let currentChat: ChatIdentity | null = null;
+import { extractAuth } from './auth-extractor';
 
 console.log('[TG-AI] Content script loaded on', window.location.href);
 
@@ -15,41 +12,21 @@ function init(): void {
   console.log('[TG-AI] Initializing on Telegram Web...');
   injectUI();
   observeChat();
-  detectChatChange();
-  watchHashChanges();
+  initAuth();
 }
 
-/** Detect current chat from URL hash + DOM header and log it. */
-function detectChatChange(): void {
-  const header = document.querySelector('.chat-info, .top, .TopBar');
-  const identity = getCurrentChatIdentity(window.location.href, header);
-
-  if (identity.id !== currentChat?.id || identity.name !== currentChat?.name) {
-    currentChat = identity;
-    console.log('[TG-AI] Chat changed:', currentChat);
+/** Run auth extraction and send result to background SW */
+async function initAuth(): Promise<void> {
+  try {
+    const authData = await extractAuth();
+    chrome.runtime.sendMessage({ type: 'AUTH_EXTRACTED', payload: authData });
+    console.log(
+      '[TG-AI] Auth data sent to background:',
+      authData.authenticated ? 'authenticated' : 'not authenticated',
+    );
+  } catch (err) {
+    console.error('[TG-AI] Auth extraction failed:', err);
   }
-}
-
-/** Listen for URL hash changes (user navigating between chats). */
-function watchHashChanges(): void {
-  window.addEventListener('hashchange', () => {
-    detectChatChange();
-  });
-
-  // Also observe the header area for SPA-style navigation (no hash change)
-  const topbar = document.querySelector('.chat-info, .top, .TopBar, #column-center');
-  if (topbar) {
-    const headerObserver = new MutationObserver(() => {
-      detectChatChange();
-    });
-    headerObserver.observe(topbar, { childList: true, subtree: true, characterData: true });
-    console.log('[TG-AI] Header MutationObserver attached');
-  }
-}
-
-/** Get the current chat identity (exposed for other modules). */
-export function getChatIdentity(): ChatIdentity | null {
-  return currentChat;
 }
 
 /** Inject the suggestion panel UI into Telegram's chat area */
