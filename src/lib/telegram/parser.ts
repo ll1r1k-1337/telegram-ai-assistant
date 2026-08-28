@@ -14,7 +14,12 @@ export function extractMessageText(el: Element): string {
 
 /** Check if a message element is outgoing (sent by the user). */
 export function isOutgoingMessage(el: Element): boolean {
-  return el.classList.contains('is-out') || el.classList.contains('message-out');
+  if (el.classList.contains('is-out') || el.classList.contains('message-out')) {
+    return true;
+  }
+  // Check parent bubble for .is-out (inner elements inherit outgoing status)
+  const bubble = el.closest('.is-out, .message-out');
+  return bubble !== null;
 }
 
 /** Extract author name from a message element. */
