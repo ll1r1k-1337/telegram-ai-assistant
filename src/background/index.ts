@@ -1,7 +1,8 @@
 // Background Service Worker — telegram-ai-assistant
 // Handles AI API requests and message passing with content scripts
 
-import { detectLanguage } from '../lib/language-detector';
+import type { ChatContext } from '../lib/types';
+import { getToneInstruction } from '../lib/prompts/tone';
 
 console.log('[TG-AI] Background service worker started');
 
@@ -128,16 +129,15 @@ async function getAuthStatus(): Promise<AuthData | null> {
 async function handleGenerateReply(payload: {
   messages: Array<{ author: string; text: string; timestamp: string }>;
   chatName: string;
-  chatType: string;
-}): Promise<{ suggestions: string[]; language: string } | { error: string }> {
-  // Auto-detect conversation language from message texts
-  const language = detectLanguage(payload.messages.map((m) => m.text));
-  console.log('[TG-AI] Detected language:', language);
+  chatType: ChatContext['chatType'];
+}): Promise<{ suggestions: string[] } | { error: string }> {
+  // Adapt tone to chat type (E5-002)
+  const toneSnippet = getToneInstruction(payload.chatType);
+  console.log('[TG-AI] Tone:', toneSnippet.split('\n')[0]);
 
   // TODO: implement AI provider calls (Epic 4)
-  // The detected `language` should be passed in ChatContext so providers
-  // can instruct the model to reply in the same language
-  console.log('[TG-AI] Generate reply request:', { ...payload, language });
+  // Pass toneSnippet as part of the system prompt when calling the AI provider.
+  console.log('[TG-AI] Generate reply request:', payload);
   return {
     suggestions: [
       'Подсказка 1 (заглушка)',
