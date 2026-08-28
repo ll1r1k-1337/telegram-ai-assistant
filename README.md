@@ -1,34 +1,245 @@
-# telegram-ai-assistant
+<p align="center">
+  <img src="src/assets/icon-128.png" alt="Telegram AI Assistant" width="96" />
+</p>
 
-Chrome Extension (Manifest V3) для web.telegram.org — AI-подсказки по ответам в чатах.
+<h1 align="center">Telegram AI Assistant</h1>
 
-## Концепция
+<p align="center">
+  <strong>AI-подсказки по ответам прямо в web.telegram.org</strong><br/>
+  Chrome Extension (Manifest V3) · TypeScript · OpenAI / Anthropic / Ollama
+</p>
 
-- Расширение встраивается в web.telegram.org
-- Читает контекст чата (последние сообщения)
-- Генерирует AI-подсказки по ответу через настраиваемый провайдер (OpenAI, Anthropic, Ollama и др.)
-- Авторизация в Telegram через webcookie (без API ключей Telegram)
+<p align="center">
+  <a href="#установка">Установка</a> •
+  <a href="#возможности">Возможности</a> •
+  <a href="#провайдеры">Провайдеры</a> •
+  <a href="#настройка">Настройка</a> •
+  <a href="#разработка">Разработка</a> •
+  <a href="#лицензия">Лицензия</a>
+</p>
 
-## Стек
+---
 
-- Chrome Extension (Manifest V3)
-- TypeScript
-- Content Scripts (инъекция в web.telegram.org)
-- Background Service Worker (AI API запросы)
-- Popup/Options page (настройки провайдера)
+<!-- GIF-демо: замените docs/demo-placeholder.svg на docs/demo.gif после записи экрана -->
+<!-- Инструкция по записи: docs/RECORDING.md -->
+<!-- Интерактивное демо для записи GIF: docs/demo.html -->
+<p align="center">
+  <img src="docs/demo-placeholder.svg" alt="Demo — AI подсказки в Telegram Web" width="720" />
+</p>
 
-## Структура
+> 💡 Для записи GIF-демо откройте [`docs/demo.html`](docs/demo.html) в Chrome — интерактивный симулятор всех сценариев.
+
+## Что это?
+
+**Telegram AI Assistant** — Chrome-расширение, которое встраивается в [web.telegram.org](https://web.telegram.org) и генерирует умные AI-подсказки по ответам в чатах. Расширение читает контекст переписки (последние сообщения, тип чата, язык) и предлагает 2–3 варианта ответа — от краткого до развёрнутого.
+
+> **Данные чата не покидают ваше устройство**, кроме запроса к выбранному AI-провайдеру.
+
+## Возможности
+
+| Фича | Описание |
+|---|---|
+| 🤖 **AI-подсказки** | 2–3 варианта ответа, адаптированных под тон чата |
+| ⚡ **Быстрая вставка** | Клик по подсказке → текст в поле ввода |
+| 🎨 **Адаптивная тема** | Автоматически подстраивается под светлую / тёмную тему Telegram |
+| ⌨️ **Горячие клавиши** | `Alt+1` / `Alt+2` / `Alt+3` — мгновенный выбор подсказки |
+| 🔄 **Автотриггер** | Генерация подсказок при новом входящем сообщении (опционально) |
+| 🌍 **Мультиязычность** | Автоопределение языка переписки |
+| 🔒 **Приватность** | Минимальные permissions, опциональная анонимизация имён |
+| 🛠 **Гибкие провайдеры** | OpenAI, Anthropic, Ollama, любой OpenAI-совместимый API |
+
+## Установка
+
+### Из Chrome Web Store
+
+> 🚧 В процессе публикации — следите за обновлениями.
+
+### Ручная установка (для разработчиков)
+
+```bash
+git clone https://github.com/ll1r1k-1337/telegram-ai-assistant.git
+cd telegram-ai-assistant
+npm install
+npm run build
+```
+
+1. Откройте `chrome://extensions/`
+2. Включите **Режим разработчика** (переключатель в правом верхнем углу)
+3. Нажмите **Загрузить распакованное расширение**
+4. Выберите папку `dist/`
+
+## Провайдеры
+
+| Провайдер | Модели | Примечание |
+|---|---|---|
+| **OpenAI** | GPT-4o-mini, GPT-4o | Требуется API-ключ |
+| **Anthropic** | Claude 3.5 Sonnet, Claude 3 Opus | Требуется API-ключ |
+| **Ollama** | Любая модель (llama3, mistral, …) | Локально, бесплатно |
+| **Custom** | Любой OpenAI-compatible endpoint | Свой URL + ключ |
+
+## Настройка
+
+### Быстрый старт
+
+1. Установите расширение
+2. Нажмите на иконку 🤖 в панели расширений
+3. Перейдите в **Настройки** (Options)
+4. Выберите провайдера и введите API-ключ
+5. Откройте [web.telegram.org](https://web.telegram.org) — готово!
+
+### Options page
+
+- **Провайдер** — OpenAI / Anthropic / Ollama / Custom
+- **API Key** — ключ для облачного провайдера
+- **Модель** — название модели (напр. `gpt-4o-mini`)
+- **Base URL** — для Ollama / Custom (напр. `http://localhost:11434`)
+- **System Prompt** — свои инструкции для AI (тон, стиль, формат)
+- **Кол-во подсказок** — от 1 до 5
+
+### Popup
+
+- Toggle вкл/выкл расширения
+- Статус подключения
+- Быстрый доступ к настройкам
+
+## Как это работает
+
+```
+┌────────────────────────────────────────────────────────────┐
+│  web.telegram.org                                          │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Чат                                                 │  │
+│  │  ┌───────────────────────────────────┐               │  │
+│  │  │ Собеседник: Привет! Как дела?     │               │  │
+│  │  │ Собеседник: Завтра встреча в 15:00│               │  │
+│  │  └───────────────────────────────────┘               │  │
+│  │                                                      │  │
+│  │  ┌─────────────────────────────────────────────────┐ │  │
+│  │  │ 🤖 AI Подсказки                              ✕ │ │  │
+│  │  │ ┌─────────────┐┌──────────────┐┌─────────────┐ │ │  │
+│  │  │ │ Привет! Всё ││ Хорошо, буду ││ Отлично!    │ │ │  │
+│  │  │ │ супер 👋    ││ на месте ✅  ││ Подтвержд...│ │ │  │
+│  │  │ └─────────────┘└──────────────┘└─────────────┘ │ │  │
+│  │  └─────────────────────────────────────────────────┘ │  │
+│  │  ┌──────────────────────────────────────────┐        │  │
+│  │  │ Напишите сообщение...                    │        │  │
+│  │  └──────────────────────────────────────────┘        │  │
+│  └──────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────┘
+```
+
+1. **Content Script** парсит последние сообщения из DOM web.telegram.org
+2. Контекст отправляется в **Background Service Worker**
+3. Service Worker вызывает выбранный **AI-провайдер** (OpenAI / Anthropic / Ollama)
+4. Варианты ответов показываются как **кликабельные чипсы** над полем ввода
+5. Клик → текст вставляется в поле ввода Telegram
+
+## Разработка
+
+### Требования
+
+- Node.js ≥ 18
+- npm ≥ 9
+
+### Команды
+
+```bash
+npm install          # Установка зависимостей
+npm run dev          # Dev-сервер с HMR
+npm run build        # Production build → dist/
+npm run typecheck    # Проверка типов (tsc --noEmit)
+npm run lint         # ESLint
+npm run lint:fix     # ESLint с автоисправлением
+npm run format       # Prettier — форматирование
+npm run format:check # Prettier — проверка
+```
+
+### Структура проекта
 
 ```
 src/
-├── manifest.json
-├── background/        # Service Worker — AI API, cookie management
-├── content/           # Content Script — DOM, UI injection
-├── popup/             # Popup — быстрые настройки
-├── options/           # Options page — провайдер, API key, модель
-├── lib/               # Общие утилиты, типы
-│   ├── providers/     # AI провайдеры (OpenAI, Anthropic, Ollama)
-│   ├── telegram/      # Telegram DOM parsing, cookie auth
-│   └── types.ts
-└── assets/            # Иконки, стили
+├── manifest.json          # Chrome Extension Manifest V3
+├── background/            # Service Worker — AI API, настройки
+│   └── index.ts
+├── content/               # Content Script — DOM Telegram, UI
+│   ├── index.ts           # Инъекция в DOM, чтение чата
+│   ├── chips.ts           # Suggestion chips (render, click-to-insert)
+│   ├── keyboard.ts        # Alt+1/2/3 — горячие клавиши
+│   ├── animations.ts      # Контроллер анимаций панели и чипсов
+│   ├── styles.css         # Основные стили (CSS-переменные, light/dark)
+│   ├── animations.css     # Keyframe-анимации
+│   └── keyboard.css       # Стили бейджей горячих клавиш
+├── popup/                 # Popup — быстрые настройки
+│   ├── index.html
+│   └── popup.ts
+├── options/               # Options — провайдер, ключ, модель
+│   ├── index.html
+│   └── options.ts
+├── privacy/               # Политика конфиденциальности
+│   └── index.html
+├── lib/                   # Общие модули
+│   ├── types.ts           # TypeScript типы
+│   ├── reply-generator.ts # Оркестрация: промпт → провайдер → парсинг
+│   ├── reply-parser.ts    # Извлечение вариантов из ответа AI
+│   ├── prompt-builder.ts  # Построение system/user prompt
+│   ├── language-detector.ts # Автоопределение языка
+│   ├── streaming.ts       # SSE-стриминг через chrome.runtime.Port
+│   ├── sse.ts             # Server-Sent Events парсер
+│   ├── crypto.ts          # Шифрование API-ключей
+│   ├── prompts/           # Шаблоны промптов и тон
+│   │   ├── index.ts
+│   │   └── tone.ts
+│   └── telegram/          # DOM-парсинг Telegram
+│       ├── parser.ts
+│       └── parser.test.ts
+└── assets/                # Иконки (16/32/48/128)
 ```
+
+### Архитектура
+
+```
+Content Script ←→ chrome.runtime.sendMessage ←→ Background SW
+     │                                              │
+     ├── DOM parsing (MutationObserver)              ├── AI Provider API call
+     ├── UI injection (suggestion chips)             ├── Settings management
+     └── Insert text on click                        └── Rate limiting
+```
+
+## Безопасность
+
+- **Минимальные permissions**: только `storage` и `activeTab`
+- **Host permissions**: только `https://web.telegram.org/*`
+- **Нет remote code**: весь код бандлится локально
+- **API-ключи**: хранятся в `chrome.storage.local` (зашифрованы)
+- **Анонимизация**: опция замены имён в сообщениях перед отправкой в AI
+- **CSP**: строгая Content Security Policy
+
+## Roadmap
+
+- [x] Scaffold — MV3, TypeScript, Vite
+- [x] Content Script + Background SW + Popup + Options
+- [x] Иконки расширения
+- [x] DOM парсинг web.telegram.org
+- [x] AI-провайдеры (OpenAI, Anthropic, Ollama, Custom)
+- [x] Промпт-инженерия (стиль, тон, мультиязычность)
+- [x] UI подсказок с адаптивной темой
+- [x] Горячие клавиши (Alt+1/2/3)
+- [x] Анимации (появление панели, чипсов)
+- [x] Options page — полный UI (провайдер, ключ, модель, промпт)
+- [x] Popup — toggle, статус, автотриггер
+- [x] Privacy Policy
+- [x] E2E тесты (Playwright)
+- [x] CI: GitHub Actions — lint + typecheck + build
+- [x] Build pipeline: zip для CWS submission
+- [x] Landing page / README с GIF-демо
+- [ ] Chrome Web Store публикация
+
+## Лицензия
+
+MIT © 2026
+
+---
+
+<p align="center">
+  <sub>Сделано с ❤️ для продуктивного общения в Telegram</sub>
+</p>

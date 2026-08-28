@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="405" viewBox="0 0 720 405">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f0f0f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="720" height="405" fill="url(#bg)" rx="12"/>
+
+  <!-- Browser chrome -->
+  <rect x="0" y="0" width="720" height="36" fill="#2d333b" rx="12"/>
+  <circle cx="20" cy="18" r="6" fill="#ff5f57"/>
+  <circle cx="40" cy="18" r="6" fill="#febc2e"/>
+  <circle cx="60" cy="18" r="6" fill="#28c840"/>
+  <rect x="120" y="8" width="480" height="20" fill="#1a1a2e" rx="10"/>
+  <text x="360" y="23" fill="#8b949e" font-family="sans-serif" font-size="11" text-anchor="middle">web.telegram.org</text>
+
+  <!-- Telegram sidebar -->
+  <rect x="0" y="36" width="200" height="369" fill="#1a1a2e"/>
+  <text x="16" y="64" fill="#0088cc" font-family="sans-serif" font-size="14" font-weight="bold">Telegram</text>
+
+  <!-- Chat list items -->
+  <rect x="8" y="80" width="184" height="48" fill="#2d333b" rx="8"/>
+  <text x="20" y="102" fill="#e4e6eb" font-family="sans-serif" font-size="12">Алексей</text>
+  <text x="20" y="118" fill="#8b949e" font-family="sans-serif" font-size="10">Привет! Как дела?</text>
+
+  <rect x="8" y="136" width="184" height="48" fill="#16213e" rx="8"/>
+  <text x="20" y="158" fill="#e4e6eb" font-family="sans-serif" font-size="12">Рабочий чат</text>
+  <text x="20" y="174" fill="#8b949e" font-family="sans-serif" font-size="10">Завтра встреча в 15:00</text>
+
+  <!-- Chat area -->
+  <rect x="200" y="36" width="520" height="369" fill="#0f0f0f"/>
+
+  <!-- Chat header -->
+  <rect x="200" y="36" width="520" height="48" fill="#1a1a2e"/>
+  <text x="224" y="65" fill="#e4e6eb" font-family="sans-serif" font-size="14" font-weight="bold">Алексей</text>
+  <text x="224" y="80" fill="#8b949e" font-family="sans-serif" font-size="10">был в сети 5 мин. назад</text>
+
+  <!-- Messages -->
+  <rect x="220" y="100" width="260" height="36" fill="#2d333b" rx="10"/>
+  <text x="232" y="122" fill="#e4e6eb" font-family="sans-serif" font-size="12">Привет! Как дела?</text>
+
+  <rect x="220" y="148" width="300" height="36" fill="#2d333b" rx="10"/>
+  <text x="232" y="170" fill="#e4e6eb" font-family="sans-serif" font-size="12">Завтра встреча по проекту в 15:00</text>
+
+  <rect x="220" y="196" width="220" height="36" fill="#2d333b" rx="10"/>
+  <text x="232" y="218" fill="#e4e6eb" font-family="sans-serif" font-size="12">Сможешь подготовить отчёт?</text>
+
+  <!-- AI Suggestion Panel -->
+  <rect x="220" y="260" width="480" height="90" fill="#1a1a2e" rx="12" stroke="#0088cc" stroke-width="1"/>
+  <text x="236" y="282" fill="#0088cc" font-family="sans-serif" font-size="12" font-weight="bold">🤖 AI Подсказки</text>
+
+  <!-- Suggestion chips -->
+  <rect x="236" y="292" width="140" height="30" fill="#0088cc33" rx="8" stroke="#0088cc" stroke-width="1"/>
+  <text x="248" y="312" fill="#29b6f6" font-family="sans-serif" font-size="11">Привет! Всё ок 👋</text>
+
+  <rect x="386" y="292" width="150" height="30" fill="#0088cc33" rx="8" stroke="#0088cc" stroke-width="1"/>
+  <text x="398" y="312" fill="#29b6f6" font-family="sans-serif" font-size="11">Да, подготовлю ✅</text>
+
+  <rect x="546" y="292" width="140" height="30" fill="#0088cc33" rx="8" stroke="#0088cc" stroke-width="1"/>
+  <text x="558" y="312" fill="#29b6f6" font-family="sans-serif" font-size="11">Буду на месте 📍</text>
+
+  <!-- Close button -->
+  <text x="688" y="282" fill="#8b949e" font-family="sans-serif" font-size="14">✕</text>
+
+  <!-- Input field -->
+  <rect x="220" y="365" width="480" height="36" fill="#2d333b" rx="8"/>
+  <text x="240" y="388" fill="#8b949e" font-family="sans-serif" font-size="12">Напишите сообщение...</text>
+
+  <!-- Watermark -->
+  <text x="360" y="398" fill="#30363d" font-family="sans-serif" font-size="9" text-anchor="middle">Замените на docs/demo.gif после записи</text>
+</svg>
