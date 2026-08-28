@@ -1,29 +1,19 @@
 {
   "manifest_version": 3,
   "name": "Telegram AI Assistant",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "AI-подсказки по ответам в web.telegram.org",
-  "permissions": [
-    "storage"
-  ],
-  "host_permissions": [
-    "https://web.telegram.org/*"
-  ],
+  "permissions": ["storage"],
+  "host_permissions": ["https://web.telegram.org/*"],
   "background": {
     "service_worker": "background/index.ts",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://web.telegram.org/*"
-      ],
-      "js": [
-        "content/index.ts"
-      ],
-      "css": [
-        "content/styles.css"
-      ],
+      "matches": ["https://web.telegram.org/*"],
+      "js": ["content/index.ts"],
+      "css": ["content/styles.css"],
       "run_at": "document_idle"
     }
   ],
