@@ -12,13 +12,29 @@ export interface ChatContext {
   language?: string;
 }
 
+/** Media type detected from DOM */
+export type MediaType = 'photo' | 'video' | 'sticker' | 'voice' | 'document' | 'gif' | 'audio';
+
+/** Forward origin metadata */
+export interface ForwardInfo {
+  /** Original author or channel name */
+  from: string;
+}
+
 /** Single chat message */
 export interface ChatMessage {
   author: string;
   text: string;
   timestamp: string;
   isOutgoing: boolean;
+  /** Text of the message this one replies to */
   replyTo?: string;
+  /** Non-null when the message was forwarded */
+  forward?: ForwardInfo;
+  /** True when the message has been edited */
+  isEdited?: boolean;
+  /** Non-null for media messages (photo, video, sticker, etc.) */
+  mediaType?: MediaType;
 }
 
 /** Extension settings stored in chrome.storage */
