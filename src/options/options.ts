@@ -1,4 +1,5 @@
 // Options page script — provider-aware save/load settings
+export {}; // side-effect module — isolate scope from other scripts
 
 /** Model presets per provider */
 const PROVIDER_MODELS: Record<string, Array<{ value: string; label: string }>> = {
@@ -56,7 +57,7 @@ const testBtn = document.getElementById('testBtn')!;
 const testResult = document.getElementById('testResult')!;
 const toggleApiKeyBtn = document.getElementById('toggleApiKey')!;
 
-/** Populate model <select> for the given provider, preserving current value if possible */
+/** Populate model <select> for the given provider */
 function updateModels(provider: string, currentModel?: string): void {
   const models = PROVIDER_MODELS[provider] ?? [];
   fields.model.innerHTML = '';
@@ -68,7 +69,6 @@ function updateModels(provider: string, currentModel?: string): void {
     fields.model.appendChild(opt);
   }
 
-  // Allow free-form model entry for custom/ollama
   if (provider === 'custom' || provider === 'ollama') {
     const customOpt = document.createElement('option');
     customOpt.value = '__custom__';
@@ -76,13 +76,11 @@ function updateModels(provider: string, currentModel?: string): void {
     fields.model.appendChild(customOpt);
   }
 
-  // Restore previous value if it exists in the list
   if (currentModel) {
     const exists = Array.from(fields.model.options).some((o) => o.value === currentModel);
     if (exists) {
       fields.model.value = currentModel;
     } else if (currentModel !== '__custom__') {
-      // Add the saved model as a custom option at top
       const opt = document.createElement('option');
       opt.value = currentModel;
       opt.textContent = currentModel;
@@ -96,22 +94,15 @@ function updateModels(provider: string, currentModel?: string): void {
 
 /** Show/hide fields based on provider */
 function updateVisibility(provider: string): void {
-  // API key: hidden for Ollama
   apiKeyGroup.classList.toggle('hidden', provider === 'ollama');
-
-  // Base URL: visible only for Ollama and Custom
   baseUrlGroup.classList.toggle('hidden', provider !== 'ollama' && provider !== 'custom');
-
-  // Update API key placeholder
   fields.apiKey.placeholder = API_KEY_PLACEHOLDERS[provider] ?? '';
 
-  // Set default base URL if field is empty
   if (!fields.baseUrl.value && DEFAULT_BASE_URLS[provider]) {
     fields.baseUrl.value = DEFAULT_BASE_URLS[provider];
   }
 }
 
-/** Update the model hint text */
 function updateModelHint(provider: string): void {
   const hints: Record<string, string> = {
     openai: 'Рекомендуется gpt-4o-mini для баланса скорости и качества.',
@@ -122,7 +113,6 @@ function updateModelHint(provider: string): void {
   modelHint.textContent = hints[provider] ?? '';
 }
 
-/** Handle custom model entry via prompt */
 function handleCustomModel(): void {
   if (fields.model.value === '__custom__') {
     const custom = prompt('Введите имя модели:');
@@ -133,19 +123,15 @@ function handleCustomModel(): void {
       fields.model.insertBefore(opt, fields.model.firstChild);
       fields.model.value = custom;
     } else {
-      // Revert to first real option
       fields.model.selectedIndex = 0;
     }
   }
 }
 
-// --- Event listeners ---
-
 fields.provider.addEventListener('change', () => {
   const provider = fields.provider.value;
   updateVisibility(provider);
   updateModels(provider);
-  // Reset base URL to default for new provider
   fields.baseUrl.value = DEFAULT_BASE_URLS[provider] ?? '';
 });
 
@@ -157,7 +143,6 @@ toggleApiKeyBtn.addEventListener('click', () => {
   toggleApiKeyBtn.textContent = isPassword ? '🙈' : '👁';
 });
 
-// Test connection
 testBtn.addEventListener('click', async () => {
   testResult.textContent = '⏳ Проверка…';
   testResult.className = 'test-result';
@@ -209,7 +194,6 @@ testBtn.addEventListener('click', async () => {
   }
 });
 
-// Load settings
 chrome.storage.local.get(null, (settings: Record<string, unknown>) => {
   const provider = (settings.provider as string) ?? 'openai';
   fields.provider.value = provider;
@@ -225,7 +209,6 @@ chrome.storage.local.get(null, (settings: Record<string, unknown>) => {
   renderBlacklist();
 });
 
-// Save
 document.getElementById('saveBtn')!.addEventListener('click', () => {
   const provider = fields.provider.value;
   chrome.storage.local.set(
@@ -244,7 +227,6 @@ document.getElementById('saveBtn')!.addEventListener('click', () => {
         btn.textContent = 'Сохранить';
       }, 1500);
 
-      // Notify background about settings change
       chrome.runtime.sendMessage({
         type: 'SETTINGS_UPDATED',
         payload: {
