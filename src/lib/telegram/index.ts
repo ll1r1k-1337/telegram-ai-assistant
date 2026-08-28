@@ -9,4 +9,7 @@ export {
   detectChatType,
   extractChatName,
   buildChatContext,
+  extractChatIdFromUrl,
+  getCurrentChatIdentity,
+  buildChatContextWithIdentity,
 } from './parser';

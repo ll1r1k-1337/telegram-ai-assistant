@@ -4,11 +4,20 @@ export interface AIProvider {
   generateReply(context: ChatContext): Promise<string[]>;
 }
 
+/** Identifies the currently open chat (for whitelist filtering) */
+export interface ChatIdentity {
+  /** Numeric peer ID extracted from URL hash, e.g. "-1001234567890" */
+  id: string | null;
+  /** Display name extracted from the DOM header */
+  name: string;
+}
+
 /** Chat context passed to AI */
 export interface ChatContext {
   messages: ChatMessage[];
   chatName: string;
   chatType: 'private' | 'group' | 'channel';
+  chatIdentity?: ChatIdentity;
   language?: string;
 }
 
