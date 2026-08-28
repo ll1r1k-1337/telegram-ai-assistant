@@ -1,14 +1,20 @@
 // Background Service Worker — telegram-ai-assistant
 // Handles AI API requests and message passing with content scripts
 
-import { decrypt, migrateApiKey } from '../lib/crypto';
+import {
+  STREAM_PORT_NAME,
+  streamOverPort,
+  type StreamCallback,
+} from '../lib/streaming';
+import type { ChatContext, StreamRequest } from '../lib/types';
+
 
 console.log('[TG-AI] Background service worker started');
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('[TG-AI] Extension installed');
-    // Set default settings (no apiKey until user configures one)
+    console.log('[TG-AI] Extension installed — launching onboarding');
+    // Set default settings
     chrome.storage.local.set({
       provider: 'openai',
       model: 'gpt-4o-mini',
@@ -16,8 +22,10 @@ chrome.runtime.onInstalled.addListener((details) => {
       autoTrigger: false,
       suggestionCount: 3,
       systemPrompt: '',
-      chatBlacklist: [],
+      onboardingCompleted: false,
     });
+    // Open onboarding wizard in a new tab
+    chrome.tabs.create({ url: chrome.runtime.getURL('onboarding/index.html') });
   }
   if (details.reason === 'update') {
     // Migrate legacy plaintext apiKey → encrypted apiKeyEnc
@@ -117,3 +125,31 @@ async function handleGenerateReply(payload: {
     ],
   };
 }
+
+// ---- Streaming Port handler (E4-009) ----
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== STREAM_PORT_NAME) return;
+  console.log('[TG-AI] Streaming port connected');
+  port.onMessage.addListener(async (msg: StreamRequest) => {
+    if (msg.type !== 'STREAM_REQUEST') return;
+    console.log('[TG-AI] Stream request:', msg.payload.chatName);
+    await streamOverPort(port, handleStreamReply, msg.payload);
+  });
+  port.onDisconnect.addListener(() => {
+    console.log('[TG-AI] Streaming port disconnected');
+  });
+});
+
+async function handleStreamReply(
+  context: ChatContext,
+  onDelta: StreamCallback,
+): Promise<string> {
+  console.log('[TG-AI] Streaming reply for:', context.chatName);
+  const stub = 'Привет! Как дела?';
+  for (const char of stub) {
+    if (onDelta(char) === false) return stub;
+    await new Promise((r) => setTimeout(r, 30));
+  }
+  return stub;
+}
+
