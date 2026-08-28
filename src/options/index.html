@@ -77,14 +77,15 @@
       .toggle input:checked + .slider { background: #3390ec; }
       .toggle input:checked + .slider::before { transform: translateX(18px); }
 
-      /* Model suggestions */
-      .model-hints { display: flex; gap: 6px; flex-wrap: wrap; margin-top: -8px; margin-bottom: 14px; }
-      .model-hint {
-        font-size: 11px; padding: 3px 8px;
-        background: #f0f4ff; color: #3390ec; border: 1px solid #d6e4f7;
-        border-radius: 12px; cursor: pointer; transition: 0.15s;
-      }
-      .model-hint:hover { background: #3390ec; color: #fff; }
+    <label for="suggestionCount">Количество подсказок</label>
+    <select id="suggestionCount">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3" selected>3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+  </div>
 
       /* Buttons */
       .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }

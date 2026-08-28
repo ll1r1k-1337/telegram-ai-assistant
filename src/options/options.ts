@@ -1,5 +1,5 @@
-// Options page — full settings UI with validation & conditional fields
-import type { Settings } from '../lib/types';
+import { clampSuggestionCount } from '../lib/types';
+// Options page script — save/load settings
 
 /** Per-provider model suggestions */
 const MODEL_HINTS: Record<string, string[]> = {
@@ -231,10 +231,20 @@ el.provider.addEventListener('change', () => {
   updateConditionalUI();
 });
 
-el.toggleApiKey.addEventListener('click', () => {
-  const showing = el.apiKey.type === 'text';
-  el.apiKey.type = showing ? 'password' : 'text';
-  el.toggleApiKey.textContent = showing ? '👁' : '🙈';
+// Save
+document.getElementById('saveBtn')!.addEventListener('click', () => {
+  chrome.storage.local.set({
+    provider: fields.provider.value,
+    apiKey: fields.apiKey.value,
+    model: fields.model.value,
+    baseUrl: fields.baseUrl.value,
+    systemPrompt: fields.systemPrompt.value,
+    suggestionCount: clampSuggestionCount(fields.suggestionCount.value),
+  }, () => {
+    const btn = document.getElementById('saveBtn')!;
+    btn.textContent = '✓ Сохранено';
+    setTimeout(() => { btn.textContent = 'Сохранить'; }, 1500);
+  });
 });
 
 // Clear invalid state on input

@@ -1,8 +1,7 @@
 // Background Service Worker — telegram-ai-assistant
 // Handles AI API requests and message passing with content scripts
 
-import type { ChatContext } from '../lib/types';
-import { getToneInstruction } from '../lib/prompts/tone';
+import { clampSuggestionCount } from '../lib/types';
 
 console.log('[TG-AI] Background service worker started');
 
@@ -131,21 +130,20 @@ async function handleGenerateReply(payload: {
   chatName: string;
   chatType: ChatContext['chatType'];
 }): Promise<{ suggestions: string[] } | { error: string }> {
-  // Adapt tone to chat type (E5-002)
-  const toneSnippet = getToneInstruction(payload.chatType);
-  console.log('[TG-AI] Tone:', toneSnippet.split('\n')[0]);
+  // Read user-configured suggestion count from storage (clamped to 1-5)
+  const count = await new Promise<number>((resolve) => {
+    chrome.storage.local.get('suggestionCount', (r) => {
+      resolve(clampSuggestionCount(r.suggestionCount));
+    });
+  });
 
   // TODO: implement AI provider calls (Epic 4)
   // Pass toneSnippet as part of the system prompt when calling the AI provider.
   console.log('[TG-AI] Generate reply request:', payload);
-  return {
-    suggestions: [
-      'Подсказка 1 (заглушка)',
-      'Подсказка 2 (заглушка)',
-      'Подсказка 3 (заглушка)',
-    ],
-    language,
-  };
+  const suggestions = Array.from({ length: count }, (_, i) =>
+    `Подсказка ${i + 1} (заглушка)`
+  );
+  return { suggestions };
 }
 
 // ---- Streaming Port handler (E4-009) ----
