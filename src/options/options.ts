@@ -21,16 +21,21 @@ chrome.storage.local.get(null, (settings) => {
 
 // Save
 document.getElementById('saveBtn')!.addEventListener('click', () => {
-  chrome.storage.local.set({
-    provider: fields.provider.value,
-    apiKey: fields.apiKey.value,
-    model: fields.model.value,
-    baseUrl: fields.baseUrl.value,
-    systemPrompt: fields.systemPrompt.value,
-    suggestionCount: Number(fields.suggestionCount.value),
-  }, () => {
-    const btn = document.getElementById('saveBtn')!;
-    btn.textContent = '✓ Сохранено';
-    setTimeout(() => { btn.textContent = 'Сохранить'; }, 1500);
-  });
+  chrome.storage.local.set(
+    {
+      provider: fields.provider.value,
+      apiKey: fields.apiKey.value,
+      model: fields.model.value,
+      baseUrl: fields.baseUrl.value,
+      systemPrompt: fields.systemPrompt.value,
+      suggestionCount: Number(fields.suggestionCount.value),
+    },
+    () => {
+      const btn = document.getElementById('saveBtn')!;
+      btn.textContent = '✓ Сохранено';
+      setTimeout(() => {
+        btn.textContent = 'Сохранить';
+      }, 1500);
+    },
+  );
 });

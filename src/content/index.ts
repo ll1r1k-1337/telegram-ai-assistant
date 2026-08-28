@@ -1,6 +1,8 @@
 // Content Script — telegram-ai-assistant
 // Injected into web.telegram.org, handles DOM parsing and UI injection
 
+import { extractAuth } from './auth-extractor';
+
 console.log('[TG-AI] Content script loaded on', window.location.href);
 
 function init(): void {
@@ -10,6 +12,21 @@ function init(): void {
   console.log('[TG-AI] Initializing on Telegram Web...');
   injectUI();
   observeChat();
+  initAuth();
+}
+
+/** Run auth extraction and send result to background SW */
+async function initAuth(): Promise<void> {
+  try {
+    const authData = await extractAuth();
+    chrome.runtime.sendMessage({ type: 'AUTH_EXTRACTED', payload: authData });
+    console.log(
+      '[TG-AI] Auth data sent to background:',
+      authData.authenticated ? 'authenticated' : 'not authenticated',
+    );
+  } catch (err) {
+    console.error('[TG-AI] Auth extraction failed:', err);
+  }
 }
 
 /** Inject the suggestion panel UI into Telegram's chat area */

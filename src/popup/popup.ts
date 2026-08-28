@@ -24,7 +24,5 @@ autoToggle.addEventListener('change', () => {
 
 function updateStatus(enabled: boolean): void {
   statusDot.className = `status-dot ${enabled ? 'active' : 'inactive'}`;
-  statusText.textContent = enabled
-    ? 'Активен на web.telegram.org'
-    : 'Отключено';
+  statusText.textContent = enabled ? 'Активен на web.telegram.org' : 'Отключено';
 }

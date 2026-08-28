@@ -33,8 +33,30 @@ export interface Settings {
   systemPrompt: string;
 }
 
+/** Single auth data source (cookie, localStorage, etc.) */
+export interface AuthSource {
+  type: 'cookie' | 'localStorage' | 'sessionStorage' | 'indexedDB';
+  keys: Record<string, string>;
+}
+
+/** Aggregated auth extraction result */
+export interface AuthData {
+  authenticated: boolean;
+  version: 'k' | 'a' | 'unknown';
+  userId?: string;
+  dcId?: number;
+  sources: AuthSource[];
+  extractedAt: number;
+  /** Screen is passcode-locked (tt-screen-locked) */
+  screenLocked: boolean;
+  /** Number of active multi-account slots (Web A tt-account-*) */
+  accounts: number;
+}
+
 /** Messages between content script and background */
 export type ExtensionMessage =
   | { type: 'GENERATE_REPLY'; payload: ChatContext }
   | { type: 'GET_SETTINGS' }
-  | { type: 'SETTINGS_UPDATED'; payload: Partial<Settings> };
+  | { type: 'SETTINGS_UPDATED'; payload: Partial<Settings> }
+  | { type: 'AUTH_EXTRACTED'; payload: AuthData }
+  | { type: 'GET_AUTH_STATUS' };
