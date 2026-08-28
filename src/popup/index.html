@@ -14,7 +14,21 @@
     .status-dot { width: 8px; height: 8px; border-radius: 50%; }
     .status-dot.active { background: #22c55e; }
     .status-dot.inactive { background: #ef4444; }
+    .status-dot.unconfigured { background: #f59e0b; }
     .status-text { font-size: 13px; color: #555; }
+    .setup-banner {
+      display: none;
+      padding: 10px;
+      margin-bottom: 12px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #c2410c;
+      cursor: pointer;
+      text-align: center;
+    }
+    .setup-banner:hover { background: #ffedd5; }
     .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
     .toggle-label { font-size: 13px; color: #333; }
     .toggle { position: relative; width: 40px; height: 22px; }
@@ -29,13 +43,17 @@
 </head>
 <body>
   <div class="header">
-    <span style="font-size: 28px;">🤖</span>
+    <span style="font-size: 28px;">&#x1F916;</span>
     <h1>TG AI Assistant</h1>
   </div>
 
   <div class="status">
     <span class="status-dot active" id="statusDot"></span>
     <span class="status-text" id="statusText">Активен на web.telegram.org</span>
+  </div>
+
+  <div class="setup-banner" id="setupBanner">
+    &#x1F527; Нажмите, чтобы завершить настройку расширения
   </div>
 
   <div class="toggle-row">
@@ -55,7 +73,9 @@
   </div>
 
   <div class="footer">
-    <a href="options/index.html" target="_blank">⚙ Настройки</a>
+    <a href="options/index.html" target="_blank">&#x2699; Настройки</a>
+    &nbsp;·&nbsp;
+    <a href="privacy/index.html" target="_blank">&#x1F512; Приватность</a>
   </div>
 
   <script src="popup.ts" type="module"></script>

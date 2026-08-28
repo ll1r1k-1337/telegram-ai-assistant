@@ -31,6 +31,7 @@ export interface Settings {
   autoTrigger: boolean;
   suggestionCount: number;
   systemPrompt: string;
+  onboardingCompleted: boolean;
 }
 
 /** Messages between content script and background */

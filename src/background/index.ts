@@ -5,7 +5,7 @@ console.log('[TG-AI] Background service worker started');
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('[TG-AI] Extension installed');
+    console.log('[TG-AI] Extension installed \u2014 launching onboarding');
     // Set default settings
     chrome.storage.local.set({
       provider: 'openai',
@@ -15,7 +15,10 @@ chrome.runtime.onInstalled.addListener((details) => {
       autoTrigger: false,
       suggestionCount: 3,
       systemPrompt: '',
+      onboardingCompleted: false,
     });
+    // Open onboarding wizard in a new tab
+    chrome.tabs.create({ url: chrome.runtime.getURL('onboarding/index.html') });
   }
 });
 
