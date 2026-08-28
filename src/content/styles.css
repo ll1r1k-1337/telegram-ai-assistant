@@ -59,6 +59,18 @@
   transform: translateX(2px);
 }
 
+.tg-ai-suggestion--active {
+  background: var(--tg-ai-primary, #3390ec);
+  color: #fff;
+  border-color: var(--tg-ai-primary, #3390ec);
+  pointer-events: none;
+}
+
+.tg-ai-suggestion:focus-visible {
+  outline: 2px solid var(--tg-ai-primary, #3390ec);
+  outline-offset: 2px;
+}
+
 .tg-ai-panel__trigger {
   display: block;
   width: 100%;
