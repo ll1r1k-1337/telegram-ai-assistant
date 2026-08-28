@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вариант 1: Inline Chips — Telegram AI Assistant</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #0e1621;
+  color: #e4ecf2;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* === Telegram Sidebar === */
+.sidebar {
+  width: 260px;
+  background: #17212b;
+  border-right: 1px solid #0e1621;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.sidebar-header {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #0e1621;
+}
+.sidebar-header .hamburger { font-size: 20px; cursor: pointer; color: #7c8b9a; }
+.sidebar-header input {
+  flex: 1;
+  background: #242f3d;
+  border: none;
+  border-radius: 18px;
+  padding: 8px 14px;
+  color: #e4ecf2;
+  font-size: 13px;
+  outline: none;
+}
+.chat-list { flex: 1; overflow-y: auto; }
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.chat-item:hover { background: #202b36; }
+.chat-item.active { background: #3390ec30; }
+.chat-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.chat-meta { flex: 1; min-width: 0; }
+.chat-meta .name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-meta .preview { font-size: 13px; color: #7c8b9a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chat-meta .time { font-size: 12px; color: #7c8b9a; float: right; }
+
+/* === Chat Area === */
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #0e1621;
+}
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #17212b;
+  border-bottom: 1px solid #0e1621;
+}
+.chat-header .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #6c5ce7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #fff;
+}
+.chat-header .info .name { font-size: 14px; font-weight: 600; }
+.chat-header .info .status { font-size: 12px; color: #3390ec; }
+
+/* Messages */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.msg {
+  max-width: 420px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  position: relative;
+}
+.msg .time {
+  font-size: 11px;
+  color: #7c8b9a;
+  float: right;
+  margin-left: 8px;
+  margin-top: 4px;
+}
+.msg.incoming {
+  background: #182533;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.msg.outgoing {
+  background: #2b5278;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+/* === Suggestion Chips (Inline) === */
+.suggestion-area {
+  padding: 0 60px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  max-height: 0;
+  opacity: 0;
+}
+.suggestion-area.visible {
+  max-height: 200px;
+  opacity: 1;
+  padding: 8px 60px;
+}
+.suggestion-label {
+  font-size: 11px;
+  color: #7c8b9a;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.suggestion-label .ai-badge {
+  background: #3390ec;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  background: #1c2b3a;
+  border: 1px solid #2b3d4f;
+  border-radius: 16px;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: #e4ecf2;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chip:hover {
+  background: #2b5278;
+  border-color: #3390ec;
+  transform: translateY(-1px);
+}
+.chip:active {
+  transform: scale(0.97);
+}
+.chip.inserting {
+  background: #3390ec;
+  border-color: #3390ec;
+  color: #fff;
+}
+
+/* Input area */
+.input-area {
+  padding: 8px 16px 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: #17212b;
+}
+.input-area .attach {
+  font-size: 22px;
+  color: #7c8b9a;
+  cursor: pointer;
+  padding: 6px;
+  flex-shrink: 0;
+}
+.input-field {
+  flex: 1;
+  background: #242f3d;
+  border: none;
+  border-radius: 18px;
+  padding: 10px 16px;
+  color: #e4ecf2;
+  font-size: 14px;
+  outline: none;
+  resize: none;
+  min-height: 20px;
+  max-height: 120px;
+  line-height: 1.4;
+}
+.input-field::placeholder { color: #7c8b9a; }
+.input-area .send-btn {
+  width: 36px;
+  height: 36px;
+  background: #3390ec;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.input-area .send-btn:hover { opacity: 0.85; }
+.ai-trigger {
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: 1px solid #2b3d4f;
+  border-radius: 50%;
+  color: #7c8b9a;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.ai-trigger:hover { border-color: #3390ec; color: #3390ec; }
+.ai-trigger.active { background: #3390ec20; border-color: #3390ec; color: #3390ec; }
+
+/* Loading */
+.chip-loading {
+  display: flex;
+  gap: 4px;
+  padding: 8px 14px;
+}
+.chip-loading .dot {
+  width: 6px;
+  height: 6px;
+  background: #7c8b9a;
+  border-radius: 50%;
+  animation: bounce 0.6s alternate infinite;
+}
+.chip-loading .dot:nth-child(2) { animation-delay: 0.15s; }
+.chip-loading .dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bounce {
+  to { opacity: 0.3; transform: translateY(-4px); }
+}
+
+/* Hotkey hint */
+.hotkey-hint {
+  font-size: 10px;
+  color: #566776;
+  padding: 4px 60px 0;
+  transition: opacity 0.2s;
+}
+.hotkey-hint kbd {
+  background: #242f3d;
+  border: 1px solid #2b3d4f;
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-family: inherit;
+}
+
+/* Light theme */
+@media (prefers-color-scheme: light) {
+  body { background: #e6ebee; color: #333; }
+  .sidebar { background: #fff; border-color: #dfe2e5; }
+  .sidebar-header input { background: #f0f2f5; color: #333; }
+  .chat-item:hover { background: #f0f2f5; }
+  .chat-item.active { background: #3390ec20; }
+  .chat-header { background: #fff; border-color: #dfe2e5; }
+  .messages { }
+  .msg.incoming { background: #fff; color: #333; }
+  .msg.outgoing { background: #effdde; color: #333; }
+  .chip { background: #fff; border-color: #dfe2e5; color: #333; }
+  .chip:hover { background: #e8f0fe; border-color: #3390ec; }
+  .input-area { background: #fff; }
+  .input-field { background: #f0f2f5; color: #333; }
+  .ai-trigger { border-color: #dfe2e5; color: #999; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <span class="hamburger">☰</span>
+    <input type="text" placeholder="Поиск">
+  </div>
+  <div class="chat-list">
+    <div class="chat-item active">
+      <div class="chat-avatar" style="background:#6c5ce7">АС</div>
+      <div class="chat-meta">
+        <div class="name">Алексей Смирнов <span class="time">14:32</span></div>
+        <div class="preview">Привет! Как продвигается проект?</div>
+      </div>
+    </div>
+    <div class="chat-item">
+      <div class="chat-avatar" style="background:#e17055">МК</div>
+      <div class="chat-meta">
+        <div class="name">Мария Козлова <span class="time">13:15</span></div>
+        <div class="preview">Созвон в 16:00?</div>
+      </div>
+    </div>
+    <div class="chat-item">
+      <div class="chat-avatar" style="background:#00b894">Р</div>
+      <div class="chat-meta">
+        <div class="name">Работа 💼 <span class="time">12:40</span></div>
+        <div class="preview">Дмитрий: Отчёт готов</div>
+      </div>
+    </div>
+    <div class="chat-item">
+      <div class="chat-avatar" style="background:#fdcb6e">ЕП</div>
+      <div class="chat-meta">
+        <div class="name">Екатерина П. <span class="time">вчера</span></div>
+        <div class="preview">Спасибо за помощь!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chat -->
+<div class="chat-area">
+  <div class="chat-header">
+    <div class="avatar">АС</div>
+    <div class="info">
+      <div class="name">Алексей Смирнов</div>
+      <div class="status">в сети</div>
+    </div>
+  </div>
+  <div class="messages">
+    <div class="msg incoming">Привет! Как дела с проектом? <span class="time">14:25</span></div>
+    <div class="msg outgoing">Привет! Всё идёт по плану, сейчас заканчиваю фронтенд. <span class="time">14:26</span></div>
+    <div class="msg incoming">Круто! А когда примерно будет готов MVP? Заказчик спрашивает сроки. <span class="time">14:28</span></div>
+    <div class="msg outgoing">Думаю к следующей пятнице точно. Основной функционал уже работает. <span class="time">14:29</span></div>
+    <div class="msg incoming">Отлично. А можешь скинуть скриншоты текущего состояния? Хочу показать на встрече. <span class="time">14:31</span></div>
+    <div class="msg incoming">И ещё вопрос — мы решили по авторизации? OAuth или JWT? <span class="time">14:32</span></div>
+  </div>
+
+  <!-- SUGGESTION CHIPS — inline above input -->
+  <div class="suggestion-area" id="suggestions">
+    <div class="suggestion-label">
+      <span class="ai-badge">AI</span>
+      <span>Подсказки ответа</span>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="hotkey-hint" id="hotkeyHint" style="opacity:0">
+    <kbd>Alt</kbd>+<kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> — вставить • <kbd>Esc</kbd> — скрыть
+  </div>
+
+  <div class="input-area">
+    <span class="attach">📎</span>
+    <textarea class="input-field" id="inputField" placeholder="Напишите сообщение..." rows="1"></textarea>
+    <button class="ai-trigger" id="aiBtn" title="AI подсказки (Alt+/)">💡</button>
+    <button class="send-btn">➤</button>
+  </div>
+</div>
+
+<script>
+const suggestions = [
+  'Да, сейчас скину! По авторизации — давай JWT, проще интегрировать.',
+  'Скриншоты подготовлю через час. OAuth уже настроен на бэкенде.',
+  'Конечно! А по авторизации — предлагаю обсудить на созвоне, есть нюансы.'
+];
+
+const aiBtn = document.getElementById('aiBtn');
+const suggestionsArea = document.getElementById('suggestions');
+const chipsEl = document.getElementById('chips');
+const inputField = document.getElementById('inputField');
+const hotkeyHint = document.getElementById('hotkeyHint');
+let isVisible = false;
+
+function showLoading() {
+  chipsEl.innerHTML = '<div class="chip-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  suggestionsArea.classList.add('visible');
+  aiBtn.classList.add('active');
+}
+
+function showSuggestions() {
+  chipsEl.innerHTML = '';
+  suggestions.forEach((text, i) => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.textContent = text;
+    chip.title = `Alt+${i+1}`;
+    chip.addEventListener('click', () => insertSuggestion(chip, text));
+    chipsEl.appendChild(chip);
+  });
+  hotkeyHint.style.opacity = '1';
+  isVisible = true;
+}
+
+function insertSuggestion(chip, text) {
+  chip.classList.add('inserting');
+  setTimeout(() => {
+    inputField.value = text;
+    inputField.focus();
+    hideSuggestions();
+  }, 200);
+}
+
+function hideSuggestions() {
+  suggestionsArea.classList.remove('visible');
+  aiBtn.classList.remove('active');
+  hotkeyHint.style.opacity = '0';
+  isVisible = false;
+}
+
+function toggleSuggestions() {
+  if (isVisible) {
+    hideSuggestions();
+  } else {
+    showLoading();
+    setTimeout(showSuggestions, 800);
+  }
+}
+
+aiBtn.addEventListener('click', toggleSuggestions);
+
+document.addEventListener('keydown', (e) => {
+  if (e.altKey && e.key === '/') { e.preventDefault(); toggleSuggestions(); }
+  if (e.key === 'Escape' && isVisible) { hideSuggestions(); }
+  if (e.altKey && isVisible && ['1','2','3'].includes(e.key)) {
+    e.preventDefault();
+    const idx = parseInt(e.key) - 1;
+    const chips = chipsEl.querySelectorAll('.chip');
+    if (chips[idx]) insertSuggestion(chips[idx], suggestions[idx]);
+  }
+});
+
+// Auto-show on load for demo
+setTimeout(() => { showLoading(); setTimeout(showSuggestions, 800); }, 500);
+</script>
+</body>
+</html>
