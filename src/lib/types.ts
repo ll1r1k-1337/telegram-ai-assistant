@@ -21,6 +21,18 @@ export interface ChatMessage {
   replyTo?: string;
 }
 
+/** Suggestion count limits */
+export const MIN_SUGGESTION_COUNT = 1;
+export const MAX_SUGGESTION_COUNT = 5;
+export const DEFAULT_SUGGESTION_COUNT = 3;
+
+/** Clamp suggestionCount to valid 1-5 range */
+export function clampSuggestionCount(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return DEFAULT_SUGGESTION_COUNT;
+  return Math.max(MIN_SUGGESTION_COUNT, Math.min(MAX_SUGGESTION_COUNT, Math.round(n)));
+}
+
 /** Extension settings stored in chrome.storage */
 export interface Settings {
   provider: 'openai' | 'anthropic' | 'ollama' | 'custom';

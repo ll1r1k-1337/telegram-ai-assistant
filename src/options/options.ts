@@ -1,3 +1,4 @@
+import { clampSuggestionCount } from '../lib/types';
 // Options page script — save/load settings
 
 const fields = {
@@ -27,7 +28,7 @@ document.getElementById('saveBtn')!.addEventListener('click', () => {
     model: fields.model.value,
     baseUrl: fields.baseUrl.value,
     systemPrompt: fields.systemPrompt.value,
-    suggestionCount: Number(fields.suggestionCount.value),
+    suggestionCount: clampSuggestionCount(fields.suggestionCount.value),
   }, () => {
     const btn = document.getElementById('saveBtn')!;
     btn.textContent = '✓ Сохранено';
