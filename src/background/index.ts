@@ -1,7 +1,7 @@
 // Background Service Worker — telegram-ai-assistant
 // Handles AI API requests and message passing with content scripts
 
-import type { AuthData } from '../lib/types';
+import { detectLanguage } from '../lib/language-detector';
 
 console.log('[TG-AI] Background service worker started');
 
@@ -129,20 +129,22 @@ async function handleGenerateReply(payload: {
   messages: Array<{ author: string; text: string; timestamp: string }>;
   chatName: string;
   chatType: string;
-}): Promise<{ suggestions: string[] } | { error: string }> {
-  // Check blacklist before generating suggestions
-  const blResult = await new Promise<{ chatBlacklist: string[] }>((resolve) => {
-    chrome.storage.local.get(['chatBlacklist'], (r) => resolve(r as { chatBlacklist: string[] }));
-  });
-  const blacklist: string[] = blResult.chatBlacklist ?? [];
-  if (isBlacklisted(payload.chatName, blacklist)) {
-    return { error: 'Chat is blacklisted' };
-  }
+}): Promise<{ suggestions: string[]; language: string } | { error: string }> {
+  // Auto-detect conversation language from message texts
+  const language = detectLanguage(payload.messages.map((m) => m.text));
+  console.log('[TG-AI] Detected language:', language);
 
   // TODO: implement AI provider calls (Epic 4)
-  console.log('[TG-AI] Generate reply request:', payload);
+  // The detected `language` should be passed in ChatContext so providers
+  // can instruct the model to reply in the same language
+  console.log('[TG-AI] Generate reply request:', { ...payload, language });
   return {
-    suggestions: ['Подсказка 1 (заглушка)', 'Подсказка 2 (заглушка)', 'Подсказка 3 (заглушка)'],
+    suggestions: [
+      'Подсказка 1 (заглушка)',
+      'Подсказка 2 (заглушка)',
+      'Подсказка 3 (заглушка)',
+    ],
+    language,
   };
 }
 
