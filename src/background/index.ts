@@ -10,7 +10,7 @@ let cachedAuth: AuthData | null = null;
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('[TG-AI] Extension installed — launching onboarding');
+    console.log('[TG-AI] Extension installed \u2014 launching onboarding');
     // Set default settings
     chrome.storage.local.set({
       provider: 'openai',
@@ -23,10 +23,6 @@ chrome.runtime.onInstalled.addListener((details) => {
     });
     // Open onboarding wizard in a new tab
     chrome.tabs.create({ url: chrome.runtime.getURL('onboarding/index.html') });
-  }
-  if (details.reason === 'update') {
-    // Migrate legacy plaintext apiKey → encrypted apiKeyEnc
-    migrateApiKey();
   }
 });
 

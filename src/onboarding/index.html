@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Добро пожаловать — Telegram AI Assistant</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fb; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .wizard { background: #fff; border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.08); width: 480px; max-width: 95vw; overflow: hidden; }
+    .progress { height: 4px; background: #e8ecf2; }
+    .progress-fill { height: 100%; background: #3390ec; border-radius: 0 4px 4px 0; transition: width 0.3s ease; }
+    .step { display: none; padding: 40px 36px 32px; animation: fadeIn 0.25s ease; }
+    .step.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .step-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+    .step h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+    .step p { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 20px; }
+    .features { list-style: none; margin-bottom: 24px; }
+    .features li { font-size: 14px; color: #444; padding: 8px 0; display: flex; align-items: center; gap: 10px; }
+    .features li::before { content: '\2713'; color: #3390ec; font-weight: 700; font-size: 16px; }
+    .provider-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+    .provider-card { border: 2px solid #e8ecf2; border-radius: 12px; padding: 16px 14px; cursor: pointer; transition: border-color 0.15s, background 0.15s; text-align: center; }
+    .provider-card:hover { border-color: #b0c4f0; background: #f8faff; }
+    .provider-card.selected { border-color: #3390ec; background: #f0f6ff; }
+    .provider-card .card-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+    .provider-card .card-name { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+    .provider-card .card-desc { font-size: 11px; color: #888; margin-top: 4px; }
+    label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 6px; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 10px 14px; border: 1px solid #dde1e8; border-radius: 10px; font-size: 14px; font-family: inherit; margin-bottom: 16px; transition: border-color 0.15s; }
+    input:focus { outline: none; border-color: #3390ec; }
+    .hint { font-size: 11px; color: #aaa; margin-top: -12px; margin-bottom: 16px; }
+    .field-group { margin-bottom: 4px; }
+    .field-group.hidden { display: none; }
+    .field-error { font-size: 12px; color: #ef4444; margin-top: -12px; margin-bottom: 12px; display: none; }
+    .field-error.visible { display: block; }
+    .wizard-footer { padding: 0 36px 32px; display: flex; justify-content: space-between; align-items: center; }
+    .btn { padding: 10px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s, transform 0.1s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #3390ec; color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { background: #b0c4f0; cursor: not-allowed; opacity: 0.7; }
+    .btn-secondary { background: transparent; color: #666; padding: 10px 16px; }
+    .btn-secondary:hover { color: #333; }
+    .step-counter { font-size: 12px; color: #bbb; }
+    .done-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .done-actions .btn { text-align: center; }
+    .done-actions a { display: block; text-align: center; padding: 10px; font-size: 13px; color: #3390ec; text-decoration: none; }
+    .done-actions a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wizard">
+    <div class="progress"><div class="progress-fill" id="progressFill" style="width: 25%"></div></div>
+    <!-- Step 1: Welcome -->
+    <div class="step active" data-step="1">
+      <span class="step-icon">&#x1F916;</span>
+      <h2>Telegram AI Assistant</h2>
+      <p>Расширение для подсказок ответов прямо в web.telegram.org с помощью AI.</p>
+      <ul class="features">
+        <li>Анализирует контекст переписки</li>
+        <li>Генерирует варианты ответов</li>
+        <li>Вставляет подсказку в поле ввода по клику</li>
+        <li>Поддержка OpenAI, Anthropic, Ollama</li>
+      </ul>
+    </div>
+    <!-- Step 2: Provider -->
+    <div class="step" data-step="2">
+      <span class="step-icon">&#x1F50C;</span>
+      <h2>Выберите AI провайдер</h2>
+      <p>Куда отправлять запросы для генерации подсказок?</p>
+      <div class="provider-grid">
+        <div class="provider-card selected" data-provider="openai"><span class="card-icon">&#x1F7E2;</span><span class="card-name">OpenAI</span><span class="card-desc">GPT-4o, GPT-4o-mini</span></div>
+        <div class="provider-card" data-provider="anthropic"><span class="card-icon">&#x1F7E0;</span><span class="card-name">Anthropic</span><span class="card-desc">Claude Sonnet, Haiku</span></div>
+        <div class="provider-card" data-provider="ollama"><span class="card-icon">&#x1F999;</span><span class="card-name">Ollama</span><span class="card-desc">Локальная модель</span></div>
+        <div class="provider-card" data-provider="custom"><span class="card-icon">&#x26A1;</span><span class="card-name">Custom</span><span class="card-desc">OpenAI-совместимый</span></div>
+      </div>
+    </div>
+    <!-- Step 3: Configure -->
+    <div class="step" data-step="3">
+      <span class="step-icon">&#x1F511;</span>
+      <h2>Настройте подключение</h2>
+      <p id="configHint">Введите API-ключ для выбранного провайдера.</p>
+      <div class="field-group" id="apiKeyGroup">
+        <label for="apiKey">API Key</label>
+        <input type="password" id="apiKey" placeholder="sk-...">
+        <p class="hint">Ключ хранится локально, не передаётся третьим лицам.</p>
+        <p class="field-error" id="apiKeyError">Введите API ключ для продолжения</p>
+      </div>
+      <div class="field-group" id="baseUrlGroup">
+        <label for="baseUrl">Base URL</label>
+        <input type="text" id="baseUrl" placeholder="http://localhost:11434/v1">
+        <p class="hint">Адрес вашего сервера.</p>
+      </div>
+      <div class="field-group">
+        <label for="model">Модель</label>
+        <input type="text" id="model" placeholder="gpt-4o-mini">
+      </div>
+    </div>
+    <!-- Step 4: Done -->
+    <div class="step" data-step="4">
+      <span class="step-icon">&#x1F389;</span>
+      <h2>Готово!</h2>
+      <p>Расширение настроено и готово к работе. Откройте web.telegram.org, выберите чат — подсказки появятся автоматически или по нажатию кнопки.</p>
+      <div class="done-actions">
+        <button class="btn btn-primary" id="openTelegram">Открыть Telegram Web</button>
+        <a href="options/index.html" target="_blank">&#x2699; Расширенные настройки</a>
+      </div>
+    </div>
+    <!-- Footer -->
+    <div class="wizard-footer" id="wizardFooter">
+      <button class="btn btn-secondary" id="backBtn" style="visibility: hidden">&#x2190; Назад</button>
+      <span class="step-counter" id="stepCounter">1 / 4</span>
+      <button class="btn btn-primary" id="nextBtn">Начать &#x2192;</button>
+    </div>
+  </div>
+  <script src="onboarding.ts" type="module"></script>
+</body>
+</html>
