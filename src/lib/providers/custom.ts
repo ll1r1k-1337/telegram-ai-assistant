@@ -120,7 +120,7 @@ export class CustomProvider implements AIProvider {
 
     const variants: string[] = [];
     for (const line of lines) {
-      const match = line.match(/^\d+[\.\)]\s*(.+)/);
+      const match = line.match(/^\d+[.)]\s*(.+)/);
       if (match) {
         variants.push(match[1].trim());
       }
