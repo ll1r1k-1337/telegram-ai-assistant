@@ -22,9 +22,12 @@
 
 <!-- GIF-демо: замените docs/demo-placeholder.svg на docs/demo.gif после записи экрана -->
 <!-- Инструкция по записи: docs/RECORDING.md -->
+<!-- Интерактивное демо для записи GIF: docs/demo.html -->
 <p align="center">
   <img src="docs/demo-placeholder.svg" alt="Demo — AI подсказки в Telegram Web" width="720" />
 </p>
+
+> 💡 Для записи GIF-демо откройте [`docs/demo.html`](docs/demo.html) в Chrome — интерактивный симулятор всех сценариев.
 
 ## Что это?
 
@@ -54,7 +57,7 @@
 ### Ручная установка (для разработчиков)
 
 ```bash
-git clone https://github.com/<owner>/telegram-ai-assistant.git
+git clone https://github.com/ll1r1k-1337/telegram-ai-assistant.git
 cd telegram-ai-assistant
 npm install
 npm run build
@@ -159,18 +162,36 @@ src/
 ├── background/            # Service Worker — AI API, настройки
 │   └── index.ts
 ├── content/               # Content Script — DOM Telegram, UI
-│   ├── index.ts
-│   └── styles.css
+│   ├── index.ts           # Инъекция в DOM, чтение чата
+│   ├── chips.ts           # Suggestion chips (render, click-to-insert)
+│   ├── keyboard.ts        # Alt+1/2/3 — горячие клавиши
+│   ├── animations.ts      # Контроллер анимаций панели и чипсов
+│   ├── styles.css         # Основные стили (CSS-переменные, light/dark)
+│   ├── animations.css     # Keyframe-анимации
+│   └── keyboard.css       # Стили бейджей горячих клавиш
 ├── popup/                 # Popup — быстрые настройки
 │   ├── index.html
 │   └── popup.ts
 ├── options/               # Options — провайдер, ключ, модель
 │   ├── index.html
 │   └── options.ts
+├── privacy/               # Политика конфиденциальности
+│   └── index.html
 ├── lib/                   # Общие модули
-│   ├── providers/         # AI провайдеры
-│   ├── telegram/          # DOM парсинг Telegram
-│   └── types.ts           # TypeScript типы
+│   ├── types.ts           # TypeScript типы
+│   ├── reply-generator.ts # Оркестрация: промпт → провайдер → парсинг
+│   ├── reply-parser.ts    # Извлечение вариантов из ответа AI
+│   ├── prompt-builder.ts  # Построение system/user prompt
+│   ├── language-detector.ts # Автоопределение языка
+│   ├── streaming.ts       # SSE-стриминг через chrome.runtime.Port
+│   ├── sse.ts             # Server-Sent Events парсер
+│   ├── crypto.ts          # Шифрование API-ключей
+│   ├── prompts/           # Шаблоны промптов и тон
+│   │   ├── index.ts
+│   │   └── tone.ts
+│   └── telegram/          # DOM-парсинг Telegram
+│       ├── parser.ts
+│       └── parser.test.ts
 └── assets/                # Иконки (16/32/48/128)
 ```
 
@@ -198,10 +219,19 @@ Content Script ←→ chrome.runtime.sendMessage ←→ Background SW
 - [x] Scaffold — MV3, TypeScript, Vite
 - [x] Content Script + Background SW + Popup + Options
 - [x] Иконки расширения
-- [ ] DOM парсинг web.telegram.org
-- [ ] AI-провайдеры (OpenAI, Anthropic, Ollama)
-- [ ] UI подсказок с адаптивной темой
-- [ ] Горячие клавиши
+- [x] DOM парсинг web.telegram.org
+- [x] AI-провайдеры (OpenAI, Anthropic, Ollama, Custom)
+- [x] Промпт-инженерия (стиль, тон, мультиязычность)
+- [x] UI подсказок с адаптивной темой
+- [x] Горячие клавиши (Alt+1/2/3)
+- [x] Анимации (появление панели, чипсов)
+- [x] Options page — полный UI (провайдер, ключ, модель, промпт)
+- [x] Popup — toggle, статус, автотриггер
+- [x] Privacy Policy
+- [x] E2E тесты (Playwright)
+- [x] CI: GitHub Actions — lint + typecheck + build
+- [x] Build pipeline: zip для CWS submission
+- [x] Landing page / README с GIF-демо
 - [ ] Chrome Web Store публикация
 
 ## Лицензия

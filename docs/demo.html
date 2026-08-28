@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Telegram AI Assistant — Interactive Demo</title>
+  <style>
+    :root {
+      --tg-bg: #17212b;
+      --tg-chat-bg: #0e1621;
+      --tg-input-bg: #242f3d;
+      --tg-text: #f5f5f5;
+      --tg-text-muted: #708499;
+      --tg-accent: #3390ec;
+      --tg-out-bubble: #2b5278;
+      --tg-in-bubble: #182533;
+      --tg-border: #1c2735;
+      --chip-bg: #2a2a3a;
+      --chip-border: #3a3a4a;
+      --chip-hover: #35355a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--tg-text);
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; padding: 20px;
+    }
+    .demo-header { text-align: center; margin-bottom: 20px; }
+    .demo-header h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .demo-header p { font-size: 13px; color: var(--tg-text-muted); }
+    .demo-controls {
+      display: flex; gap: 8px; margin-bottom: 16px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .demo-controls button {
+      background: var(--tg-input-bg); border: 1px solid var(--tg-border);
+      color: var(--tg-text); padding: 6px 14px; border-radius: 8px;
+      font-size: 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .demo-controls button:hover { background: var(--tg-accent); }
+    .demo-controls button.active { background: var(--tg-accent); }
+    .telegram-window {
+      width: 480px; max-width: 100%; background: var(--tg-bg);
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--tg-border);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .tg-titlebar {
+      background: var(--tg-input-bg); padding: 10px 16px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid var(--tg-border);
+    }
+    .tg-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--tg-accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; color: #fff;
+    }
+    .tg-chat-info h3 { font-size: 14px; font-weight: 600; }
+    .tg-chat-info span { font-size: 11px; color: var(--tg-text-muted); }
+    .tg-messages {
+      background: var(--tg-chat-bg); padding: 16px; min-height: 260px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .msg {
+      max-width: 75%; padding: 8px 12px; border-radius: 12px;
+      font-size: 13px; line-height: 1.45; position: relative;
+    }
+    .msg-time {
+      font-size: 10px; color: var(--tg-text-muted);
+      float: right; margin-left: 10px; margin-top: 2px;
+    }
+    .msg-in {
+      background: var(--tg-in-bubble); align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .msg-out {
+      background: var(--tg-out-bubble); align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-name {
+      font-size: 12px; font-weight: 600; color: var(--tg-accent);
+      margin-bottom: 3px;
+    }
+    .ai-panel {
+      background: var(--tg-input-bg); border-top: 1px solid var(--tg-border);
+      padding: 10px 12px; display: none;
+    }
+    .ai-panel.visible {
+      display: block;
+      animation: panelIn 0.25s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .ai-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .ai-panel-header span { font-size: 12px; font-weight: 600; color: var(--tg-accent); }
+    .ai-panel-close {
+      background: none; border: none;
+      color: var(--tg-text-muted); font-size: 16px; cursor: pointer;
+    }
+    .ai-chips { display: flex; flex-direction: column; gap: 5px; }
+    .ai-chip {
+      background: var(--chip-bg); border: 1px solid var(--chip-border);
+      border-radius: 8px; padding: 7px 10px; font-size: 12px;
+      color: var(--tg-text); cursor: pointer; transition: all 0.15s;
+      display: flex; justify-content: space-between; align-items: center;
+      opacity: 0; animation: chipIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .ai-chip:nth-child(1) { animation-delay: 0.06s; }
+    .ai-chip:nth-child(2) { animation-delay: 0.12s; }
+    .ai-chip:nth-child(3) { animation-delay: 0.18s; }
+    .ai-chip:hover { background: var(--chip-hover); transform: translateX(2px); }
+    .ai-chip.inserted {
+      background: rgba(51,144,236,0.2); border-color: var(--tg-accent);
+    }
+    .ai-chip kbd {
+      font-size: 10px; color: var(--tg-text-muted);
+      background: rgba(255,255,255,0.06); padding: 1px 5px;
+      border-radius: 3px; font-family: monospace;
+    }
+    .tg-input-bar {
+      background: var(--tg-input-bg); padding: 8px 12px;
+      display: flex; align-items: center; gap: 8px;
+      border-top: 1px solid var(--tg-border);
+    }
+    .tg-input {
+      flex: 1; background: var(--tg-bg);
+      border: 1px solid var(--tg-border); border-radius: 20px;
+      padding: 8px 14px; font-size: 13px; color: var(--tg-text); outline: none;
+    }
+    .tg-input:focus { border-color: var(--tg-accent); }
+    .tg-input::placeholder { color: var(--tg-text-muted); }
+    .ai-trigger-btn {
+      background: var(--tg-accent); border: none; color: #fff;
+      width: 34px; height: 34px; border-radius: 50%; font-size: 16px;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ai-trigger-btn:hover { transform: scale(1.1); }
+    .ai-trigger-btn.pulse { animation: pulse 1.5s ease-out 2; }
+    .tg-send-btn {
+      background: none; border: none; color: var(--tg-accent);
+      font-size: 20px; cursor: pointer;
+    }
+    .ai-loading {
+      display: none; padding: 12px; text-align: center;
+      font-size: 12px; color: var(--tg-text-muted);
+    }
+    .ai-loading.visible { display: block; }
+    .dot-pulse { display: inline-block; }
+    .dot-pulse::after { content: '...'; animation: dots 1.2s steps(4) infinite; }
+    @keyframes panelIn {
+      from { opacity:0; transform:translateY(12px) scale(0.97); }
+      to { opacity:1; transform:translateY(0) scale(1); }
+    }
+    @keyframes chipIn {
+      from { opacity:0; transform:translateY(8px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(51,144,236,0.5); }
+      70% { box-shadow: 0 0 0 10px rgba(51,144,236,0); }
+      100% { box-shadow: 0 0 0 0 rgba(51,144,236,0); }
+    }
+    @keyframes dots {
+      0% { content: ''; } 25% { content: '.'; }
+      50% { content: '..'; } 75% { content: '...'; }
+    }
+    .telegram-window.light {
+      --tg-bg: #ffffff; --tg-chat-bg: #e6ebee; --tg-input-bg: #f0f2f5;
+      --tg-text: #222; --tg-text-muted: #888;
+      --tg-out-bubble: #effdde; --tg-in-bubble: #ffffff;
+      --tg-border: #dde1e5; --chip-bg: #f0f4ff;
+      --chip-border: #d0d8f0; --chip-hover: #e0e8ff;
+    }
+    .telegram-window.light .msg-in { box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .telegram-window.light .msg-out { color: #222; }
+    .caption {
+      margin-top: 20px; text-align: center; font-size: 12px;
+      color: var(--tg-text-muted); max-width: 480px;
+    }
+    .caption a { color: var(--tg-accent); text-decoration: none; }
+    .scenario-label {
+      font-size: 11px; color: var(--tg-accent); text-align: center;
+      margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-header">
+    <h1>Telegram AI Assistant &mdash; Demo</h1>
+    <p>Interactive demo for GIF recording. Click buttons to simulate scenarios.</p>
+  </div>
+  <div class="demo-controls">
+    <button id="btn-reset" class="active">Reset</button>
+    <button id="btn-generate">&#10024; Generate</button>
+    <button id="btn-pick">&#128433; Pick Suggestion</button>
+    <button id="btn-keyboard">&#9000; Keyboard Alt+2</button>
+    <button id="btn-theme">&#127763; Toggle Theme</button>
+  </div>
+  <div class="scenario-label" id="scenario-label">Ready</div>
+  <div class="telegram-window" id="tg-window">
+    <div class="tg-titlebar">
+      <div class="tg-avatar">&#1040;</div>
+      <div class="tg-chat-info">
+        <h3>&#1040;&#1083;&#1077;&#1082;&#1089;&#1077;&#1081; &#1055;&#1077;&#1090;&#1088;&#1086;&#1074;</h3>
+        <span>last seen recently</span>
+      </div>
+    </div>
+    <div class="tg-messages" id="messages">
+      <div class="msg msg-in">
+        <div class="msg-name">&#1040;&#1083;&#1077;&#1082;&#1089;&#1077;&#1081;</div>
+        &#1055;&#1088;&#1080;&#1074;&#1077;&#1090;! &#1055;&#1086;&#1089;&#1084;&#1086;&#1090;&#1088;&#1077;&#1083; &#1090;&#1074;&#1086;&#1081; &#1087;&#1088;&#1086;&#1077;&#1082;&#1090; &#1085;&#1072; GitHub, &#1074;&#1099;&#1075;&#1083;&#1103;&#1076;&#1080;&#1090; &#1082;&#1088;&#1091;&#1090;&#1086; &#128293;
+        <span class="msg-time">14:21</span>
+      </div>
+      <div class="msg msg-out">
+        &#1057;&#1087;&#1072;&#1089;&#1080;&#1073;&#1086;! &#1071; &#1085;&#1072;&#1076; &#1085;&#1080;&#1084; &#1091;&#1078;&#1077; &#1087;&#1072;&#1088;&#1091; &#1084;&#1077;&#1089;&#1103;&#1094;&#1077;&#1074; &#1088;&#1072;&#1073;&#1086;&#1090;&#1072;&#1102;
+        <span class="msg-time">14:22</span>
+      </div>
+      <div class="msg msg-in">
+        <div class="msg-name">&#1040;&#1083;&#1077;&#1082;&#1089;&#1077;&#1081;</div>
+        &#1052;&#1086;&#1078;&#1077;&#1096;&#1100; &#1088;&#1072;&#1089;&#1089;&#1082;&#1072;&#1079;&#1072;&#1090;&#1100; &#1087;&#1086;&#1076;&#1088;&#1086;&#1073;&#1085;&#1077;&#1077; &#1087;&#1088;&#1086; &#1072;&#1088;&#1093;&#1080;&#1090;&#1077;&#1082;&#1090;&#1091;&#1088;&#1091;? &#1054;&#1089;&#1086;&#1073;&#1077;&#1085;&#1085;&#1086; &#1080;&#1085;&#1090;&#1077;&#1088;&#1077;&#1089;&#1091;&#1077;&#1090; &#1082;&#1072;&#1082; &#1090;&#1099; &#1088;&#1077;&#1072;&#1083;&#1080;&#1079;&#1086;&#1074;&#1072;&#1083; &#1089;&#1090;&#1088;&#1080;&#1084;&#1080;&#1085;&#1075;
+        <span class="msg-time">14:23</span>
+      </div>
+    </div>
+    <div class="ai-panel" id="ai-panel">
+      <div class="ai-panel-header">
+        <span>&#10024; AI &#1055;&#1086;&#1076;&#1089;&#1082;&#1072;&#1079;&#1082;&#1080;</span>
+        <button class="ai-panel-close" id="panel-close">&times;</button>
+      </div>
+      <div class="ai-chips" id="ai-chips"></div>
+    </div>
+    <div class="ai-loading" id="ai-loading">
+      <span class="dot-pulse">&#1043;&#1077;&#1085;&#1077;&#1088;&#1072;&#1094;&#1080;&#1103; &#1087;&#1086;&#1076;&#1089;&#1082;&#1072;&#1079;&#1086;&#1082;</span>
+    </div>
+    <div class="tg-input-bar">
+      <input class="tg-input" id="tg-input" type="text" placeholder="&#1057;&#1086;&#1086;&#1073;&#1097;&#1077;&#1085;&#1080;&#1077;..." readonly />
+      <button class="ai-trigger-btn pulse" id="ai-trigger" title="&#1043;&#1077;&#1085;&#1077;&#1088;&#1080;&#1088;&#1086;&#1074;&#1072;&#1090;&#1100; &#1087;&#1086;&#1076;&#1089;&#1082;&#1072;&#1079;&#1082;&#1080;">&#10024;</button>
+      <button class="tg-send-btn" title="&#1054;&#1090;&#1087;&#1088;&#1072;&#1074;&#1080;&#1090;&#1100;">&#10148;</button>
+    </div>
+  </div>
+  <div class="caption">
+    &#1054;&#1090;&#1082;&#1088;&#1086;&#1081;&#1090;&#1077; &#1101;&#1090;&#1091; &#1089;&#1090;&#1088;&#1072;&#1085;&#1080;&#1094;&#1091; &#1074; Chrome &#1080; &#1079;&#1072;&#1087;&#1080;&#1096;&#1080;&#1090;&#1077; &#1101;&#1082;&#1088;&#1072;&#1085; &#1089; &#1087;&#1086;&#1084;&#1086;&#1097;&#1100;&#1102;
+    <a href="https://www.screentogif.com/" target="_blank">ScreenToGif</a> &#1080;&#1083;&#1080;
+    <a href="https://www.cockos.com/licecap/" target="_blank">LICEcap</a>
+    &#1076;&#1083;&#1103; &#1089;&#1086;&#1079;&#1076;&#1072;&#1085;&#1080;&#1103; GIF-&#1076;&#1077;&#1084;&#1086; &#1076;&#1083;&#1103; README.
+  </div>
+<script>
+var suggestions = [
+  '\u041a\u043e\u043d\u0435\u0447\u043d\u043e! \u042f \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e SSE \u0434\u043b\u044f \u0441\u0442\u0440\u0438\u043c\u0438\u043d\u0433\u0430 \u2014 \u0441\u0435\u0440\u0432\u0435\u0440 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442 \u0447\u0430\u043d\u043a\u0438 \u0447\u0435\u0440\u0435\u0437 EventSource, \u0430 \u043d\u0430 \u043a\u043b\u0438\u0435\u043d\u0442\u0435 \u043f\u0430\u0440\u0441\u044e \u0438\u0445 \u0432 \u0440\u0435\u0430\u043b\u044c\u043d\u043e\u043c \u0432\u0440\u0435\u043c\u0435\u043d\u0438.',
+  '\u0410\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u0430 \u043f\u0440\u043e\u0441\u0442\u0430\u044f: content script \u043f\u0430\u0440\u0441\u0438\u0442 DOM, background worker \u0434\u0435\u043b\u0430\u0435\u0442 API-\u0437\u0430\u043f\u0440\u043e\u0441, \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u043f\u0440\u0438\u0445\u043e\u0434\u0438\u0442 \u0447\u0435\u0440\u0435\u0437 chrome.runtime.Port.',
+  '\u0414\u0430, \u0440\u0430\u0441\u0441\u043a\u0430\u0436\u0443! Service Worker \u0434\u0435\u043b\u0430\u0435\u0442 fetch \u043a AI API, \u0430 \u043e\u0442\u0432\u0435\u0442 \u0441\u0442\u0440\u0438\u043c\u0438\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 Port \u0432 content script.'
+];
+var panel = document.getElementById('ai-panel');
+var chips = document.getElementById('ai-chips');
+var loading = document.getElementById('ai-loading');
+var input = document.getElementById('tg-input');
+var trigger = document.getElementById('ai-trigger');
+var label = document.getElementById('scenario-label');
+var tgWindow = document.getElementById('tg-window');
+var buttons = document.querySelectorAll('.demo-controls button');
+
+function setActive(btn) {
+  for (var i = 0; i < buttons.length; i++) buttons[i].classList.remove('active');
+  btn.classList.add('active');
+}
+function reset() {
+  panel.classList.remove('visible');
+  loading.classList.remove('visible');
+  input.value = '';
+  chips.innerHTML = '';
+  trigger.classList.add('pulse');
+  label.textContent = 'Ready';
+}
+function renderChips() {
+  chips.innerHTML = '';
+  for (var i = 0; i < suggestions.length; i++) {
+    var chip = document.createElement('div');
+    chip.className = 'ai-chip';
+    var span = document.createElement('span');
+    span.textContent = suggestions[i];
+    var kbd = document.createElement('kbd');
+    kbd.textContent = 'Alt+' + (i + 1);
+    chip.appendChild(span);
+    chip.appendChild(kbd);
+    chip.setAttribute('data-idx', String(i));
+    chip.addEventListener('click', (function(idx) {
+      return function(e) { pickChip(e.currentTarget, suggestions[idx]); };
+    })(i));
+    chips.appendChild(chip);
+  }
+}
+function pickChip(chipEl, text) {
+  var all = chips.querySelectorAll('.ai-chip');
+  for (var i = 0; i < all.length; i++) all[i].classList.remove('inserted');
+  chipEl.classList.add('inserted');
+  input.value = text;
+  input.style.borderColor = '#3390ec';
+  setTimeout(function() { input.style.borderColor = ''; }, 600);
+}
+
+document.getElementById('btn-generate').addEventListener('click', function() {
+  setActive(this); reset();
+  label.textContent = '\u0413\u0415\u041d\u0415\u0420\u0410\u0426\u0418\u042f...';
+  trigger.classList.remove('pulse');
+  loading.classList.add('visible');
+  panel.classList.remove('visible');
+  setTimeout(function() {
+    loading.classList.remove('visible');
+    renderChips();
+    panel.classList.add('visible');
+    label.textContent = '\u041f\u041e\u0414\u0421\u041a\u0410\u0417\u041a\u0418 \u0413\u041e\u0422\u041e\u0412\u042b';
+  }, 1500);
+});
+document.getElementById('btn-pick').addEventListener('click', function() {
+  setActive(this); reset();
+  label.textContent = '\u041a\u041b\u0418\u041a \u041f\u041e \u041f\u041e\u0414\u0421\u041a\u0410\u0417\u041a\u0415';
+  renderChips();
+  panel.classList.add('visible');
+  setTimeout(function() {
+    var f = chips.querySelector('.ai-chip');
+    if (f) pickChip(f, suggestions[0]);
+  }, 1000);
+});
+document.getElementById('btn-keyboard').addEventListener('click', function() {
+  setActive(this); reset();
+  label.textContent = '\u041a\u041b\u0410\u0412\u0418\u0428\u0410: ALT+2';
+  renderChips();
+  panel.classList.add('visible');
+  setTimeout(function() {
+    var cl = chips.querySelectorAll('.ai-chip');
+    if (cl.length < 2) return;
+    var k = cl[1].querySelector('kbd');
+    if (k) { k.style.background = 'rgba(51,144,236,0.4)'; k.style.color = '#fff'; }
+    setTimeout(function() {
+      pickChip(cl[1], suggestions[1]);
+      if (k) { k.style.background = ''; k.style.color = ''; }
+    }, 600);
+  }, 1000);
+});
+document.getElementById('btn-theme').addEventListener('click', function() {
+  setActive(this);
+  tgWindow.classList.toggle('light');
+  label.textContent = tgWindow.classList.contains('light')
+    ? '\u0421\u0412\u0415\u0422\u041b\u0410\u042f \u0422\u0415\u041c\u0410' : '\u0422\u0401\u041c\u041d\u0410\u042f \u0422\u0415\u041c\u0410';
+});
+document.getElementById('btn-reset').addEventListener('click', function() {
+  setActive(this); reset();
+});
+document.getElementById('panel-close').addEventListener('click', function() {
+  panel.classList.remove('visible');
+});
+trigger.addEventListener('click', function() {
+  document.getElementById('btn-generate').click();
+});
+</script>
+</body>
+</html>
