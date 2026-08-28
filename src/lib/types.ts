@@ -31,6 +31,7 @@ export interface Settings {
   autoTrigger: boolean;
   suggestionCount: number;
   systemPrompt: string;
+  onboardingCompleted: boolean;
 }
 
 /** Messages between content script and background */
@@ -38,3 +39,9 @@ export type ExtensionMessage =
   | { type: 'GENERATE_REPLY'; payload: ChatContext }
   | { type: 'GET_SETTINGS' }
   | { type: 'SETTINGS_UPDATED'; payload: Partial<Settings> };
+
+/** Message sent over streaming Port to request a stream */
+export interface StreamRequest {
+  type: 'STREAM_REQUEST';
+  payload: ChatContext;
+}
