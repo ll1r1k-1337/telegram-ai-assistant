@@ -60,7 +60,7 @@ export function clampSuggestionCount(value: unknown): number {
 
 /** Extension settings stored in chrome.storage */
 export interface Settings {
-  provider: 'openai' | 'anthropic' | 'ollama' | 'custom';
+  provider: 'openai' | 'anthropic' | 'ollama' | 'custom' | 'claude-code';
   apiKey: string;
   model: string;
   baseUrl?: string;

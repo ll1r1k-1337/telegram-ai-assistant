@@ -3,7 +3,7 @@
   "name": "Telegram AI Assistant",
   "version": "1.0.0",
   "description": "AI-подсказки по ответам в web.telegram.org",
-  "permissions": ["storage"],
+  "permissions": ["storage", "nativeMessaging"],
   "host_permissions": ["https://web.telegram.org/*"],
   "background": {
     "service_worker": "background/index.ts",
