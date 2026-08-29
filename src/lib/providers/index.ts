@@ -6,3 +6,10 @@ export type { AnthropicProviderConfig } from './anthropic';
 
 export { createOllamaProvider } from './ollama';
 export type { OllamaProviderConfig } from './ollama';
+
+export {
+  createClaudeCodeProvider,
+  checkProxyHealth,
+  CLAUDE_CODE_DEFAULT_PORT,
+} from './claude-code';
+export { ClaudeCodeProviderError } from './claude-code';

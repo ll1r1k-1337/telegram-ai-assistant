@@ -6,6 +6,7 @@ const MODEL_HINTS: Record<string, string[]> = {
   openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1-nano'],
   anthropic: ['claude-sonnet-4-20250514', 'claude-haiku-4-20250414'],
   ollama: ['llama3.1', 'mistral', 'gemma2', 'qwen2.5'],
+  'claude-code': ['claude-code'],
   custom: ['gpt-4o-mini'],
 };
 
@@ -13,11 +14,13 @@ const DEFAULT_MODELS: Record<string, string> = {
   openai: 'gpt-4o-mini',
   anthropic: 'claude-sonnet-4-20250514',
   ollama: 'llama3.1',
+  'claude-code': 'claude-code',
   custom: 'gpt-4o-mini',
 };
 
 const DEFAULT_URLS: Record<string, string> = {
   ollama: 'http://localhost:11434/v1',
+  'claude-code': 'http://127.0.0.1:19280',
   custom: '',
 };
 
@@ -57,16 +60,21 @@ const el = {
 function showToast(msg: string, ok: boolean): void {
   el.toast.textContent = msg;
   el.toast.className = `toast show ${ok ? 'toast-success' : 'toast-error'}`;
-  setTimeout(() => { el.toast.classList.remove('show'); }, 2500);
+  setTimeout(() => {
+    el.toast.classList.remove('show');
+  }, 2500);
 }
 
 // ── Conditional fields ─────────────────────────────────
 function updateConditionalUI(): void {
   const p = el.provider.value;
-  // API key: hide for ollama
-  el.apiKeyGroup.classList.toggle('hidden', p === 'ollama');
-  // Base URL: show for ollama & custom
-  el.baseUrlGroup.classList.toggle('hidden', p !== 'ollama' && p !== 'custom');
+  // API key: hide for ollama and claude-code
+  el.apiKeyGroup.classList.toggle('hidden', p === 'ollama' || p === 'claude-code');
+  // Base URL: show for ollama, claude-code & custom
+  el.baseUrlGroup.classList.toggle(
+    'hidden',
+    p !== 'ollama' && p !== 'custom' && p !== 'claude-code',
+  );
   // Model hints
   renderModelHints(p);
 }
@@ -78,7 +86,9 @@ function renderModelHints(provider: string): void {
     const chip = document.createElement('span');
     chip.className = 'model-hint';
     chip.textContent = m;
-    chip.addEventListener('click', () => { el.model.value = m; });
+    chip.addEventListener('click', () => {
+      el.model.value = m;
+    });
     el.modelHints.appendChild(chip);
   }
 }
@@ -104,7 +114,7 @@ function saveSettings(): void {
   const provider = el.provider.value as Settings['provider'];
 
   // Validate
-  if (provider !== 'ollama' && !el.apiKey.value.trim()) {
+  if (provider !== 'ollama' && provider !== 'claude-code' && !el.apiKey.value.trim()) {
     el.apiKey.classList.add('invalid');
     showToast('Введите API ключ', false);
     el.apiKey.focus();
@@ -116,7 +126,10 @@ function saveSettings(): void {
     el.model.focus();
     return;
   }
-  if ((provider === 'ollama' || provider === 'custom') && !el.baseUrl.value.trim()) {
+  if (
+    (provider === 'ollama' || provider === 'custom' || provider === 'claude-code') &&
+    !el.baseUrl.value.trim()
+  ) {
     el.baseUrl.classList.add('invalid');
     showToast('Укажите Base URL', false);
     el.baseUrl.focus();
@@ -174,7 +187,9 @@ async function testConnection(): Promise<void> {
     let body: string | undefined;
 
     if (provider === 'openai' || provider === 'custom') {
-      url = (provider === 'custom' && baseUrl ? baseUrl : 'https://api.openai.com/v1') + '/chat/completions';
+      url =
+        (provider === 'custom' && baseUrl ? baseUrl : 'https://api.openai.com/v1') +
+        '/chat/completions';
       headers['Authorization'] = `Bearer ${apiKey}`;
       body = JSON.stringify({
         model,
@@ -198,6 +213,21 @@ async function testConnection(): Promise<void> {
         messages: [{ role: 'user', content: 'ping' }],
         max_tokens: 1,
       });
+    } else if (provider === 'claude-code') {
+      // Health check — no actual generation
+      url = (baseUrl || 'http://127.0.0.1:19280') + '/health';
+      const resp2 = await fetch(url);
+      if (resp2.ok) {
+        const data2 = (await resp2.json()) as { status: string; claude?: string };
+        if (data2.status === 'ok') {
+          showToast(`✓ Прокси работает! Claude: ${data2.claude}`, true);
+        } else {
+          showToast(`⚠ Прокси работает, но Claude CLI не найден`, false);
+        }
+      } else {
+        showToast(`✗ Прокси не отвечает (${resp2.status})`, false);
+      }
+      return;
     }
 
     const resp = await fetch(url, { method: 'POST', headers, body });
@@ -205,7 +235,8 @@ async function testConnection(): Promise<void> {
       showToast('✓ Соединение успешно!', true);
     } else {
       const data = await resp.json().catch(() => ({}));
-      const errMsg = (data as Record<string, Record<string, string>>)?.error?.message || resp.statusText;
+      const errMsg =
+        (data as Record<string, Record<string, string>>)?.error?.message || resp.statusText;
       showToast(`✗ ${resp.status}: ${errMsg}`, false);
     }
   } catch (e) {
@@ -233,29 +264,38 @@ el.provider.addEventListener('change', () => {
 
 // Save
 document.getElementById('saveBtn')!.addEventListener('click', () => {
-  chrome.storage.local.set({
-    provider: fields.provider.value,
-    apiKey: fields.apiKey.value,
-    model: fields.model.value,
-    baseUrl: fields.baseUrl.value,
-    systemPrompt: fields.systemPrompt.value,
-    suggestionCount: clampSuggestionCount(fields.suggestionCount.value),
-  }, () => {
-    const btn = document.getElementById('saveBtn')!;
-    btn.textContent = '✓ Сохранено';
-    setTimeout(() => { btn.textContent = 'Сохранить'; }, 1500);
-  });
+  chrome.storage.local.set(
+    {
+      provider: fields.provider.value,
+      apiKey: fields.apiKey.value,
+      model: fields.model.value,
+      baseUrl: fields.baseUrl.value,
+      systemPrompt: fields.systemPrompt.value,
+      suggestionCount: clampSuggestionCount(fields.suggestionCount.value),
+    },
+    () => {
+      const btn = document.getElementById('saveBtn')!;
+      btn.textContent = '✓ Сохранено';
+      setTimeout(() => {
+        btn.textContent = 'Сохранить';
+      }, 1500);
+    },
+  );
 });
 
 // Clear invalid state on input
 for (const input of [el.apiKey, el.model, el.baseUrl]) {
-  input.addEventListener('input', () => { input.classList.remove('invalid'); });
+  input.addEventListener('input', () => {
+    input.classList.remove('invalid');
+  });
 }
 
 el.systemPrompt.addEventListener('input', updatePromptCounter);
 el.saveBtn.addEventListener('click', saveSettings);
 el.resetBtn.addEventListener('click', resetSettings);
-el.testBtn.addEventListener('click', () => { void testConnection(); });
+el.testBtn.addEventListener('click', () => {
+  void testConnection();
+});
 
 // Init
 loadSettings();

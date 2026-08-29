@@ -5,79 +5,187 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Настройки — Telegram AI Assistant</title>
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        max-width: 640px; margin: 0 auto; padding: 32px 24px;
-        background: #f7f8fa; color: #222; line-height: 1.5;
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 32px 24px;
+        background: #f7f8fa;
+        color: #222;
+        line-height: 1.5;
       }
 
       /* Header */
-      .page-header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
-      .page-header h1 { font-size: 22px; font-weight: 700; }
-      .subtitle { font-size: 13px; color: #888; margin-bottom: 28px; }
+      .page-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+      .page-header h1 {
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: #888;
+        margin-bottom: 28px;
+      }
 
       /* Sections */
       .section {
-        background: #fff; border: 1px solid #e8eaed; border-radius: 12px;
-        padding: 20px; margin-bottom: 16px;
+        background: #fff;
+        border: 1px solid #e8eaed;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
         transition: box-shadow 0.15s;
       }
-      .section:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+      .section:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
       .section-title {
-        display: flex; align-items: center; gap: 8px;
-        font-size: 15px; font-weight: 600; color: #333; margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 16px;
       }
 
       /* Form controls */
-      label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
-      select, input[type="text"], input[type="password"], input[type="number"], textarea {
-        width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px;
-        font-size: 13px; margin-bottom: 14px; font-family: inherit;
-        background: #fff; color: #222;
-        transition: border-color 0.15s, box-shadow 0.15s;
+      label {
+        display: block;
+        font-size: 13px;
+        color: #555;
+        margin-bottom: 5px;
+        font-weight: 500;
       }
-      select:focus, input:focus, textarea:focus {
-        outline: none; border-color: #3390ec;
-        box-shadow: 0 0 0 3px rgba(51,144,236,0.12);
+      select,
+      input[type='text'],
+      input[type='password'],
+      input[type='number'],
+      textarea {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 14px;
+        font-family: inherit;
+        background: #fff;
+        color: #222;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
       }
-      input.invalid, select.invalid { border-color: #e53935; }
-      textarea { resize: vertical; min-height: 80px; }
-      .hint { font-size: 11px; color: #999; margin-top: -10px; margin-bottom: 14px; }
+      select:focus,
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: #3390ec;
+        box-shadow: 0 0 0 3px rgba(51, 144, 236, 0.12);
+      }
+      input.invalid,
+      select.invalid {
+        border-color: #e53935;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .hint {
+        font-size: 11px;
+        color: #999;
+        margin-top: -10px;
+        margin-bottom: 14px;
+      }
 
       /* Input wrapper for show/hide toggle */
-      .input-wrap { position: relative; }
-      .input-wrap input { padding-right: 40px; }
-      .toggle-vis {
-        position: absolute; right: 8px; top: 7px;
-        background: none; border: none; cursor: pointer;
-        font-size: 16px; color: #888; padding: 2px 4px;
+      .input-wrap {
+        position: relative;
       }
-      .toggle-vis:hover { color: #555; }
+      .input-wrap input {
+        padding-right: 40px;
+      }
+      .toggle-vis {
+        position: absolute;
+        right: 8px;
+        top: 7px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        color: #888;
+        padding: 2px 4px;
+      }
+      .toggle-vis:hover {
+        color: #555;
+      }
 
       /* Toggle switch */
       .toggle-row {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         padding: 8px 0;
       }
-      .toggle-row + .toggle-row { border-top: 1px solid #f0f0f0; }
-      .toggle-label { font-size: 13px; color: #333; }
-      .toggle-sublabel { font-size: 11px; color: #999; margin-top: 1px; }
-      .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
-      .toggle input { opacity: 0; width: 0; height: 0; }
+      .toggle-row + .toggle-row {
+        border-top: 1px solid #f0f0f0;
+      }
+      .toggle-label {
+        font-size: 13px;
+        color: #333;
+      }
+      .toggle-sublabel {
+        font-size: 11px;
+        color: #999;
+        margin-top: 1px;
+      }
+      .toggle {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        flex-shrink: 0;
+      }
+      .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
       .toggle .slider {
-        position: absolute; inset: 0; background: #ccc;
-        border-radius: 22px; cursor: pointer; transition: 0.2s;
+        position: absolute;
+        inset: 0;
+        background: #ccc;
+        border-radius: 22px;
+        cursor: pointer;
+        transition: 0.2s;
       }
       .toggle .slider::before {
-        content: ''; position: absolute; left: 2px; top: 2px;
-        width: 18px; height: 18px; background: #fff;
-        border-radius: 50%; transition: 0.2s;
+        content: '';
+        position: absolute;
+        left: 2px;
+        top: 2px;
+        width: 18px;
+        height: 18px;
+        background: #fff;
+        border-radius: 50%;
+        transition: 0.2s;
       }
-      .toggle input:checked + .slider { background: #3390ec; }
-      .toggle input:checked + .slider::before { transform: translateX(18px); }
+      .toggle input:checked + .slider {
+        background: #3390ec;
+      }
+      .toggle input:checked + .slider::before {
+        transform: translateX(18px);
+      }
 
-    <label for="suggestionCount">Количество подсказок</label>
+      <label for="suggestionCount">Количество подсказок</label>
     <select id="suggestionCount">
       <option value="1">1</option>
       <option value="2">2</option>
@@ -88,46 +196,107 @@
   </div>
 
       /* Buttons */
-      .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-      .btn {
-        padding: 10px 24px; border: none; border-radius: 8px;
-        font-size: 14px; cursor: pointer; font-weight: 500;
-        transition: opacity 0.15s, transform 0.1s;
+      .btn-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 8px;
       }
-      .btn:active { transform: scale(0.97); }
-      .btn-primary { background: #3390ec; color: #fff; }
-      .btn-primary:hover { opacity: 0.9; }
-      .btn-secondary { background: #f0f0f0; color: #555; }
-      .btn-secondary:hover { background: #e4e4e4; }
-      .btn-test { background: #e8f5e9; color: #2e7d32; }
-      .btn-test:hover { background: #c8e6c9; }
-      .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        font-weight: 500;
+        transition:
+          opacity 0.15s,
+          transform 0.1s;
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn-primary {
+        background: #3390ec;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        opacity: 0.9;
+      }
+      .btn-secondary {
+        background: #f0f0f0;
+        color: #555;
+      }
+      .btn-secondary:hover {
+        background: #e4e4e4;
+      }
+      .btn-test {
+        background: #e8f5e9;
+        color: #2e7d32;
+      }
+      .btn-test:hover {
+        background: #c8e6c9;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
 
       /* Status toast */
       .toast {
-        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-        padding: 10px 20px; border-radius: 8px; font-size: 13px;
-        color: #fff; opacity: 0; pointer-events: none;
-        transition: opacity 0.3s; z-index: 100;
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #fff;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+        z-index: 100;
       }
-      .toast.show { opacity: 1; }
-      .toast-success { background: #43a047; }
-      .toast-error { background: #e53935; }
+      .toast.show {
+        opacity: 1;
+      }
+      .toast-success {
+        background: #43a047;
+      }
+      .toast-error {
+        background: #e53935;
+      }
 
       /* Char counter */
-      .char-counter { font-size: 11px; color: #bbb; text-align: right; margin-top: -10px; margin-bottom: 14px; }
+      .char-counter {
+        font-size: 11px;
+        color: #bbb;
+        text-align: right;
+        margin-top: -10px;
+        margin-bottom: 14px;
+      }
 
       /* Conditional visibility */
-      .hidden { display: none !important; }
+      .hidden {
+        display: none !important;
+      }
 
       /* Footer */
-      .footer { text-align: center; margin-top: 24px; font-size: 11px; color: #bbb; }
-      .footer a { color: #3390ec; text-decoration: none; }
+      .footer {
+        text-align: center;
+        margin-top: 24px;
+        font-size: 11px;
+        color: #bbb;
+      }
+      .footer a {
+        color: #3390ec;
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>
     <div class="page-header">
-      <span style="font-size:28px;">⚙</span>
+      <span style="font-size: 28px">⚙</span>
       <h1>Настройки</h1>
     </div>
     <p class="subtitle">Telegram AI Assistant — конфигурация провайдера и поведения</p>
@@ -141,6 +310,7 @@
         <option value="openai">OpenAI</option>
         <option value="anthropic">Anthropic (Claude)</option>
         <option value="ollama">Ollama (локальный)</option>
+        <option value="claude-code">Claude Code CLI (подписка)</option>
         <option value="custom">Custom (OpenAI-compatible)</option>
       </select>
 
@@ -148,9 +318,13 @@
         <label for="apiKey">API Key</label>
         <div class="input-wrap">
           <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" />
-          <button type="button" class="toggle-vis" id="toggleApiKey" title="Показать/скрыть">👁</button>
+          <button type="button" class="toggle-vis" id="toggleApiKey" title="Показать/скрыть">
+            👁
+          </button>
         </div>
-        <p class="hint">Ключ хранится локально в браузере, не передаётся никуда кроме выбранного API.</p>
+        <p class="hint">
+          Ключ хранится локально в браузере, не передаётся никуда кроме выбранного API.
+        </p>
       </div>
 
       <label for="model">Модель</label>
@@ -160,7 +334,9 @@
       <div id="baseUrlGroup">
         <label for="baseUrl">Base URL</label>
         <input type="text" id="baseUrl" placeholder="http://localhost:11434/v1" />
-        <p class="hint">Для Ollama обычно http://localhost:11434/v1, для Custom — URL вашего API.</p>
+        <p class="hint">
+          Для Ollama обычно http://localhost:11434/v1, для Custom — URL вашего API.
+        </p>
       </div>
 
       <button type="button" class="btn btn-test" id="testBtn">🔌 Проверить соединение</button>
@@ -171,7 +347,11 @@
       <div class="section-title">💬 Промпт</div>
 
       <label for="systemPrompt">Пользовательский системный промпт</label>
-      <textarea id="systemPrompt" placeholder="Дополнительные инструкции для AI... Например: «Отвечай кратко и по делу»" maxlength="2000"></textarea>
+      <textarea
+        id="systemPrompt"
+        placeholder="Дополнительные инструкции для AI... Например: «Отвечай кратко и по делу»"
+        maxlength="2000"
+      ></textarea>
       <div class="char-counter"><span id="promptChars">0</span> / 2000</div>
       <p class="hint">Оставьте пустым — будет использован промпт по умолчанию.</p>
     </div>
@@ -203,7 +383,9 @@
       <div class="toggle-row">
         <div>
           <div class="toggle-label">Автоподсказки</div>
-          <div class="toggle-sublabel">Генерировать подсказки автоматически при новом сообщении</div>
+          <div class="toggle-sublabel">
+            Генерировать подсказки автоматически при новом сообщении
+          </div>
         </div>
         <label class="toggle">
           <input type="checkbox" id="autoToggle" />

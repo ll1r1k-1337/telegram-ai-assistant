@@ -11,14 +11,15 @@ const PROVIDER_LABELS: Record<string, string> = {
   openai: 'OpenAI',
   anthropic: 'Anthropic',
   ollama: 'Ollama',
+  'claude-code': 'Claude Code',
   custom: 'Custom',
 };
 
 /** Check if API key is configured (encrypted or plaintext) */
 function hasApiKey(settings: Record<string, unknown>): boolean {
   const provider = (settings.provider as string) ?? 'openai';
-  // Ollama doesn't need an API key
-  if (provider === 'ollama') return true;
+  // Ollama and Claude Code don't need an API key
+  if (provider === 'ollama' || provider === 'claude-code') return true;
   return !!(settings.apiKeyEnc || settings.apiKey);
 }
 
