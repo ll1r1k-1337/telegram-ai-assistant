@@ -1,318 +1,229 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  ClaudeCodeProvider,
-  checkProxyHealth,
-  ClaudeCodeProviderError,
-  CLAUDE_CODE_DEFAULT_PORT,
-} from './claude-code';
+import type { ChatContext } from '../types';
+import { parseSuggestions, ClaudeCodeProvider, ClaudeCodeProviderError } from './claude-code';
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+/* ---- parseSuggestions ---- */
+
+describe('parseSuggestions', () => {
+  it('parses numbered list with dots', () => {
+    expect(parseSuggestions('1. Привет\n2. Здравствуй\n3. Хай')).toEqual([
+      'Привет',
+      'Здравствуй',
+      'Хай',
+    ]);
+  });
+
+  it('parses numbered list with parentheses', () => {
+    expect(parseSuggestions('1) Hello\n2) World')).toEqual(['Hello', 'World']);
+  });
+
+  it('skips blank lines', () => {
+    expect(parseSuggestions('1. A\n\n2. B\n\n3. C')).toEqual(['A', 'B', 'C']);
+  });
+
+  it('falls back to full text when no numbered items found', () => {
+    expect(parseSuggestions('Just a plain reply')).toEqual(['Just a plain reply']);
+  });
+
+  it('trims whitespace', () => {
+    expect(parseSuggestions('  1.  padded  \n  2.  also padded  ')).toEqual([
+      'padded',
+      'also padded',
+    ]);
+  });
+
+  it('handles mixed numbered and non-numbered lines', () => {
+    const text = 'Here are options:\n1. First\n2. Second\nExtra text';
+    expect(parseSuggestions(text)).toEqual(['First', 'Second']);
+  });
+
+  it('returns empty-string fallback for whitespace-only input', () => {
+    expect(parseSuggestions('   ')).toEqual(['']);
+  });
+});
+
+/* ---- ClaudeCodeProviderError ---- */
+
+describe('ClaudeCodeProviderError', () => {
+  it('has correct name and provider', () => {
+    const err = new ClaudeCodeProviderError('test');
+    expect(err.name).toBe('ClaudeCodeProviderError');
+    expect(err.provider).toBe('claude-code');
+    expect(err.message).toContain('[claude-code]');
+  });
+
+  it('is an instance of Error', () => {
+    expect(new ClaudeCodeProviderError('x')).toBeInstanceOf(Error);
+  });
+});
+
+/* ---- ClaudeCodeProvider ---- */
+
+const baseContext: ChatContext = {
+  messages: [
+    { author: 'Алиса', text: 'Как дела?', timestamp: '2025-01-15T10:00:00Z', isOutgoing: false },
+    { author: 'Вы', text: 'Нормально!', timestamp: '2025-01-15T10:01:00Z', isOutgoing: true },
+  ],
+  chatName: 'Алиса',
+  chatType: 'private',
+};
 
 describe('ClaudeCodeProvider', () => {
   beforeEach(() => {
-    mockFetch.mockReset();
-  });
-
-  it('should have name "claude-code"', () => {
-    const provider = new ClaudeCodeProvider({});
-    expect(provider.name).toBe('claude-code');
-  });
-
-  it('should use default base URL when none provided', () => {
-    const provider = new ClaudeCodeProvider({});
-    // We can verify by checking what URL fetch is called with
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          choices: [{ message: { content: 'Hello!' } }],
-        }),
-    });
-
-    void provider.generateReply({
-      messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-      chatName: 'Test',
-      chatType: 'private',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      `http://127.0.0.1:${CLAUDE_CODE_DEFAULT_PORT}/v1/chat/completions`,
-      expect.any(Object),
-    );
-  });
-
-  it('should use custom base URL', () => {
-    const provider = new ClaudeCodeProvider({ baseUrl: 'http://localhost:9999' });
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          choices: [{ message: { content: 'Reply' } }],
-        }),
-    });
-
-    void provider.generateReply({
-      messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-      chatName: 'Test',
-      chatType: 'private',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/v1/chat/completions',
-      expect.any(Object),
-    );
-  });
-
-  it('should strip trailing slash from base URL', () => {
-    const provider = new ClaudeCodeProvider({ baseUrl: 'http://localhost:9999/' });
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          choices: [{ message: { content: 'Reply' } }],
-        }),
-    });
-
-    void provider.generateReply({
-      messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-      chatName: 'Test',
-      chatType: 'private',
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:9999/v1/chat/completions',
-      expect.any(Object),
-    );
-  });
-
-  it('should return text from successful response', async () => {
-    const provider = new ClaudeCodeProvider({});
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          choices: [{ message: { content: 'Sure, here is a reply!' } }],
-        }),
-    });
-
-    const result = await provider.generateReply({
-      messages: [{ author: 'User', text: 'How are you?', timestamp: '12:00', isOutgoing: false }],
-      chatName: 'Test Chat',
-      chatType: 'private',
-    });
-
-    expect(result).toEqual(['Sure, here is a reply!']);
-  });
-
-  it('should send correct request body', async () => {
-    const provider = new ClaudeCodeProvider({});
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          choices: [{ message: { content: 'ok' } }],
-        }),
-    });
-
-    await provider.generateReply({
-      messages: [{ author: 'User', text: 'Test', timestamp: '12:00', isOutgoing: false }],
-      chatName: 'Chat',
-      chatType: 'group',
-    });
-
-    const [, opts] = mockFetch.mock.calls[0];
-    const body = JSON.parse(opts.body);
-
-    expect(body.model).toBe('claude-code');
-    expect(body.messages).toHaveLength(2);
-    expect(body.messages[0].role).toBe('system');
-    expect(body.messages[1].role).toBe('user');
-    expect(opts.headers['Content-Type']).toBe('application/json');
-    // No Authorization header — claude-code doesn't need API key
-    expect(opts.headers['Authorization']).toBeUndefined();
-  });
-
-  it('should use enriched prompts when available', async () => {
-    const provider = new ClaudeCodeProvider({});
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          choices: [{ message: { content: 'enriched reply' } }],
-        }),
-    });
-
-    const context = {
-      messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-      chatName: 'Test',
-      chatType: 'private' as const,
-      systemPrompt: 'Custom system prompt',
-      userPrompt: 'Custom user prompt',
+    vi.restoreAllMocks();
+    // Mock chrome.runtime.sendNativeMessage for tests
+    const chromeStub = {
+      runtime: {
+        sendNativeMessage: vi.fn(),
+        lastError: null as chrome.runtime.LastError | null,
+      },
     };
-
-    await provider.generateReply(context);
-
-    const [, opts] = mockFetch.mock.calls[0];
-    const body = JSON.parse(opts.body);
-
-    expect(body.messages[0].content).toBe('Custom system prompt');
-    expect(body.messages[1].content).toBe('Custom user prompt');
+    vi.stubGlobal('chrome', chromeStub);
   });
 
-  it('should throw ClaudeCodeProviderError when proxy is down', async () => {
-    const provider = new ClaudeCodeProvider({});
-
-    mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
-
-    await expect(
-      provider.generateReply({
-        messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-        chatName: 'Test',
-        chatType: 'private',
-      }),
-    ).rejects.toThrow(ClaudeCodeProviderError);
+  it('has name "claude-code"', () => {
+    const p = new ClaudeCodeProvider();
+    expect(p.name).toBe('claude-code');
   });
 
-  it('should include proxy startup instructions in connection error', async () => {
-    const provider = new ClaudeCodeProvider({});
-
-    mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
-
-    await expect(
-      provider.generateReply({
-        messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-        chatName: 'Test',
-        chatType: 'private',
-      }),
-    ).rejects.toThrow(/Прокси не запущен/);
-  });
-
-  it('should throw on HTTP error from proxy', async () => {
-    const provider = new ClaudeCodeProvider({});
-
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 502,
-      text: () => Promise.resolve('claude exited with code 1'),
+  it('calls sendNativeMessage with correct host name and GENERATE type', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, _msg, cb) => {
+      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. Ответ' });
     });
 
-    await expect(
-      provider.generateReply({
-        messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-        chatName: 'Test',
-        chatType: 'private',
-      }),
-    ).rejects.toThrow('HTTP 502');
+    const p = new ClaudeCodeProvider();
+    await p.generateReply(baseContext);
+
+    expect(sendNative).toHaveBeenCalledOnce();
+    const [hostName, msg] = sendNative.mock.calls[0];
+    expect(hostName).toBe('com.telegram_ai_assistant.claude_bridge');
+    expect(msg).toHaveProperty('type', 'GENERATE');
+    expect(msg).toHaveProperty('prompt');
   });
 
-  it('should throw on empty response', async () => {
-    const provider = new ClaudeCodeProvider({});
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          choices: [{ message: { content: '' } }],
-        }),
+  it('passes model when configured', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, _msg, cb) => {
+      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. X' });
     });
 
-    await expect(
-      provider.generateReply({
-        messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-        chatName: 'Test',
-        chatType: 'private',
-      }),
-    ).rejects.toThrow('Empty response');
+    const p = new ClaudeCodeProvider({ model: 'claude-sonnet-4-20250514' });
+    await p.generateReply(baseContext);
+
+    const msg = sendNative.mock.calls[0][1] as { model?: string };
+    expect(msg.model).toBe('claude-sonnet-4-20250514');
   });
 
-  it('should throw on API-level error in response body', async () => {
-    const provider = new ClaudeCodeProvider({});
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          error: { message: 'claude not authenticated' },
-        }),
+  it('parses numbered suggestions from result', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, _msg, cb) => {
+      (cb as (r: unknown) => void)({
+        type: 'RESULT',
+        text: '1. Привет!\n2. Здравствуй!\n3. Хай!',
+      });
     });
 
-    await expect(
-      provider.generateReply({
-        messages: [{ author: 'User', text: 'Hi', timestamp: '12:00', isOutgoing: false }],
-        chatName: 'Test',
-        chatType: 'private',
-      }),
-    ).rejects.toThrow('claude not authenticated');
-  });
-});
-
-describe('checkProxyHealth', () => {
-  beforeEach(() => {
-    mockFetch.mockReset();
+    const p = new ClaudeCodeProvider();
+    const result = await p.generateReply(baseContext);
+    expect(result).toEqual(['Привет!', 'Здравствуй!', 'Хай!']);
   });
 
-  it('should return ok:true when proxy is healthy', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: 'ok', claude: 'v1.2.3' }),
+  it('throws on ERROR response from native host', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, _msg, cb) => {
+      (cb as (r: unknown) => void)({ type: 'ERROR', error: 'CLI not found' });
     });
 
-    const result = await checkProxyHealth();
-    expect(result).toEqual({ ok: true, claude: 'v1.2.3' });
+    const p = new ClaudeCodeProvider();
+    await expect(p.generateReply(baseContext)).rejects.toThrow('CLI not found');
   });
 
-  it('should return ok:false when proxy reports error status', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: 'error', claude: 'not found' }),
+  it('throws on empty response text', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, _msg, cb) => {
+      (cb as (r: unknown) => void)({ type: 'RESULT', text: '' });
     });
 
-    const result = await checkProxyHealth();
-    expect(result).toEqual({ ok: false, claude: 'not found' });
+    const p = new ClaudeCodeProvider();
+    await expect(p.generateReply(baseContext)).rejects.toThrow('Empty response');
   });
 
-  it('should return ok:false when proxy is unreachable', async () => {
-    mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
-
-    const result = await checkProxyHealth();
-    expect(result.ok).toBe(false);
-    expect(result.error).toBeDefined();
-  });
-
-  it('should use custom base URL', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ status: 'ok', claude: 'v2.0' }),
+  it('throws on chrome.runtime.lastError', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, _msg, cb) => {
+      // Simulate Chrome API error
+      Object.defineProperty(chrome.runtime, 'lastError', {
+        value: { message: 'Native host has exited' },
+        configurable: true,
+      });
+      (cb as (r: unknown) => void)(undefined);
     });
 
-    await checkProxyHealth('http://localhost:9999');
-
-    expect(mockFetch).toHaveBeenCalledWith('http://localhost:9999/health', expect.any(Object));
-  });
-});
-
-describe('ClaudeCodeProviderError', () => {
-  it('should have correct provider property', () => {
-    const err = new ClaudeCodeProviderError('test');
-    expect(err.provider).toBe('claude-code');
-    expect(err.name).toBe('ClaudeCodeProviderError');
+    const p = new ClaudeCodeProvider();
+    await expect(p.generateReply(baseContext)).rejects.toThrow('Native host has exited');
   });
 
-  it('should prefix message with [claude-code]', () => {
-    const err = new ClaudeCodeProviderError('something broke');
-    expect(err.message).toBe('[claude-code] something broke');
-  });
-});
+  it('ping returns true on PONG', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, _msg, cb) => {
+      (cb as (r: unknown) => void)({ type: 'PONG', version: '1.0.0' });
+    });
 
-describe('CLAUDE_CODE_DEFAULT_PORT', () => {
-  it('should be 19280', () => {
-    expect(CLAUDE_CODE_DEFAULT_PORT).toBe(19280);
+    const p = new ClaudeCodeProvider();
+    expect(await p.ping()).toBe(true);
+  });
+
+  it('ping returns false on error', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation(() => {
+      throw new Error('Not available');
+    });
+
+    const p = new ClaudeCodeProvider();
+    expect(await p.ping()).toBe(false);
+  });
+
+  it('includes chat context in prompt', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, msg, cb) => {
+      const prompt = (msg as { prompt: string }).prompt;
+      // Verify prompt includes chat context
+      expect(prompt).toContain('Алиса');
+      expect(prompt).toContain('Как дела?');
+      expect(prompt).toContain('личный чат');
+      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. OK' });
+    });
+
+    const p = new ClaudeCodeProvider();
+    await p.generateReply(baseContext);
+  });
+
+  it('uses enriched userPrompt when available', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, msg, cb) => {
+      const prompt = (msg as { prompt: string }).prompt;
+      expect(prompt).toBe('Custom prompt from reply-generator');
+      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. Reply' });
+    });
+
+    const p = new ClaudeCodeProvider();
+    const enriched = {
+      ...baseContext,
+      userPrompt: 'Custom prompt from reply-generator',
+    } as ChatContext & { userPrompt: string };
+    await p.generateReply(enriched);
+  });
+
+  it('handles group chat type in prompt', async () => {
+    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    sendNative.mockImplementation((_host, msg, cb) => {
+      const prompt = (msg as { prompt: string }).prompt;
+      expect(prompt).toContain('групповой чат');
+      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. Hi' });
+    });
+
+    const p = new ClaudeCodeProvider();
+    await p.generateReply({ ...baseContext, chatType: 'group' });
   });
 });
