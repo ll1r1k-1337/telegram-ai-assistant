@@ -32,7 +32,7 @@ describe('buildAnthropicBody', () => {
 
   it('alternates user/assistant roles', () => {
     const body = buildAnthropicBody(baseContext, 'm');
-    const roles = body.messages.map((m) => m.role);
+    const roles = body.messages.map((m: { role: string; content: string }) => m.role);
     for (let i = 1; i < roles.length; i++) {
       expect(roles[i]).not.toBe(roles[i - 1]);
     }
@@ -53,7 +53,7 @@ describe('buildAnthropicBody', () => {
       chatType: 'group',
     };
     const body = buildAnthropicBody(ctx, 'm');
-    const firstUser = body.messages.find((m) => m.role === 'user')!;
+    const firstUser = body.messages.find((m: { role: string; content: string }) => m.role === 'user')!;
     expect(firstUser.content).toContain('msg1');
     expect(firstUser.content).toContain('msg2');
   });

@@ -71,6 +71,57 @@ export interface Settings {
   onboardingCompleted: boolean;
 }
 
+/** Source of auth data (localStorage, sessionStorage, cookie, indexedDB) */
+export interface AuthSource {
+  type: 'localStorage' | 'sessionStorage' | 'cookie' | 'indexedDB';
+  keys: Record<string, string>;
+}
+
+/** Aggregated auth data extracted from browser storage */
+export interface AuthData {
+  authenticated: boolean;
+  version: 'k' | 'a' | 'unknown';
+  userId?: string;
+  dcId?: number;
+  sources: AuthSource[];
+  extractedAt: number;
+  screenLocked: boolean;
+  accounts: number;
+}
+
+/** Streaming port name constant */
+export const STREAM_PORT_NAME = 'tg-ai-stream';
+
+/** Callback invoked for each streaming delta; return false to abort */
+export type StreamCallback = (delta: string) => void | false;
+
+/** Streaming request message */
+export interface StreamRequest {
+  type: 'STREAM_REQUEST';
+  payload: ChatContext;
+}
+
+/** Stream chunks over a chrome.runtime.Port */
+export async function streamOverPort(
+  port: chrome.runtime.Port,
+  handler: (context: ChatContext, onDelta: StreamCallback) => Promise<string>,
+  context: ChatContext,
+): Promise<void> {
+  try {
+    const onDelta: StreamCallback = (delta) => {
+      try {
+        port.postMessage({ type: 'STREAM_DELTA', delta });
+      } catch {
+        return false;
+      }
+    };
+    const full = await handler(context, onDelta);
+    port.postMessage({ type: 'STREAM_DONE', text: full });
+  } catch (err) {
+    port.postMessage({ type: 'STREAM_ERROR', error: (err as Error).message });
+  }
+}
+
 /** Messages between content script and background */
 export type ExtensionMessage =
   | { type: 'GENERATE_REPLY'; payload: ChatContext }

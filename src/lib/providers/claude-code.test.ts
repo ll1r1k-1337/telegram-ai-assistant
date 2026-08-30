@@ -74,7 +74,7 @@ describe('ClaudeCodeProvider', () => {
     // Mock chrome.runtime.sendNativeMessage for tests
     const chromeStub = {
       runtime: {
-        sendNativeMessage: vi.fn(),
+        sendNativeMessage: vi.fn() as unknown as typeof chrome.runtime.sendNativeMessage,
         lastError: null as chrome.runtime.LastError | null,
       },
     };
@@ -87,9 +87,9 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('calls sendNativeMessage with correct host name and GENERATE type', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, _msg, cb) => {
-      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. Ответ' });
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, _msg: object, cb: (r: unknown) => void) => {
+      cb({ type: 'RESULT', text: '1. Ответ' });
     });
 
     const p = new ClaudeCodeProvider();
@@ -103,9 +103,9 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('passes model when configured', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, _msg, cb) => {
-      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. X' });
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, _msg: object, cb: (r: unknown) => void) => {
+      cb({ type: 'RESULT', text: '1. X' });
     });
 
     const p = new ClaudeCodeProvider({ model: 'claude-sonnet-4-20250514' });
@@ -116,9 +116,9 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('parses numbered suggestions from result', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, _msg, cb) => {
-      (cb as (r: unknown) => void)({
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, _msg: object, cb: (r: unknown) => void) => {
+      cb({
         type: 'RESULT',
         text: '1. Привет!\n2. Здравствуй!\n3. Хай!',
       });
@@ -130,9 +130,9 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('throws on ERROR response from native host', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, _msg, cb) => {
-      (cb as (r: unknown) => void)({ type: 'ERROR', error: 'CLI not found' });
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, _msg: object, cb: (r: unknown) => void) => {
+      cb({ type: 'ERROR', error: 'CLI not found' });
     });
 
     const p = new ClaudeCodeProvider();
@@ -140,9 +140,9 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('throws on empty response text', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, _msg, cb) => {
-      (cb as (r: unknown) => void)({ type: 'RESULT', text: '' });
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, _msg: object, cb: (r: unknown) => void) => {
+      cb({ type: 'RESULT', text: '' });
     });
 
     const p = new ClaudeCodeProvider();
@@ -150,14 +150,14 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('throws on chrome.runtime.lastError', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, _msg, cb) => {
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, _msg: object, cb: (r: unknown) => void) => {
       // Simulate Chrome API error
       Object.defineProperty(chrome.runtime, 'lastError', {
         value: { message: 'Native host has exited' },
         configurable: true,
       });
-      (cb as (r: unknown) => void)(undefined);
+      cb(undefined);
     });
 
     const p = new ClaudeCodeProvider();
@@ -165,9 +165,9 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('ping returns true on PONG', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, _msg, cb) => {
-      (cb as (r: unknown) => void)({ type: 'PONG', version: '1.0.0' });
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, _msg: object, cb: (r: unknown) => void) => {
+      cb({ type: 'PONG', version: '1.0.0' });
     });
 
     const p = new ClaudeCodeProvider();
@@ -175,7 +175,7 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('ping returns false on error', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
     sendNative.mockImplementation(() => {
       throw new Error('Not available');
     });
@@ -185,14 +185,14 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('includes chat context in prompt', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, msg, cb) => {
-      const prompt = (msg as { prompt: string }).prompt;
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, msg: { prompt: string }, cb: (r: unknown) => void) => {
+      const prompt = msg.prompt;
       // Verify prompt includes chat context
       expect(prompt).toContain('Алиса');
       expect(prompt).toContain('Как дела?');
       expect(prompt).toContain('личный чат');
-      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. OK' });
+      cb({ type: 'RESULT', text: '1. OK' });
     });
 
     const p = new ClaudeCodeProvider();
@@ -200,11 +200,11 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('uses enriched userPrompt when available', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, msg, cb) => {
-      const prompt = (msg as { prompt: string }).prompt;
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, msg: { prompt: string }, cb: (r: unknown) => void) => {
+      const prompt = msg.prompt;
       expect(prompt).toBe('Custom prompt from reply-generator');
-      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. Reply' });
+      cb({ type: 'RESULT', text: '1. Reply' });
     });
 
     const p = new ClaudeCodeProvider();
@@ -216,11 +216,11 @@ describe('ClaudeCodeProvider', () => {
   });
 
   it('handles group chat type in prompt', async () => {
-    const sendNative = vi.mocked(chrome.runtime.sendNativeMessage);
-    sendNative.mockImplementation((_host, msg, cb) => {
-      const prompt = (msg as { prompt: string }).prompt;
+    const sendNative = chrome.runtime.sendNativeMessage as unknown as ReturnType<typeof vi.fn>;
+    sendNative.mockImplementation((_host: string, msg: { prompt: string }, cb: (r: unknown) => void) => {
+      const prompt = msg.prompt;
       expect(prompt).toContain('групповой чат');
-      (cb as (r: unknown) => void)({ type: 'RESULT', text: '1. Hi' });
+      cb({ type: 'RESULT', text: '1. Hi' });
     });
 
     const p = new ClaudeCodeProvider();

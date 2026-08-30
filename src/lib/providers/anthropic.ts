@@ -114,14 +114,54 @@ function buildFallbackPrompt(context: ChatContext): string {
 
 /**
  * Factory function for the provider registry.
- *
- * Used by providers/index.ts:
- *   registerProvider('anthropic', (s, apiKey) =>
- *     createAnthropicProvider({ apiKey, model: s.model }));
  */
 export function createAnthropicProvider(opts: {
   apiKey: string;
   model?: string;
 }): AnthropicProvider {
   return new AnthropicProvider(opts);
+}
+
+/**
+ * Build an Anthropic Messages API request body from a ChatContext.
+ * Exposed for testing. Handles role alternation (Anthropic requires it).
+ */
+export function buildAnthropicBody(
+  context: ChatContext,
+  model: string,
+  systemPrompt?: string,
+): {
+  system: string;
+  model: string;
+  messages: Array<{ role: string; content: string }>;
+  max_tokens: number;
+} {
+  const system =
+    systemPrompt || `Ты ассистент в чате «${context.chatName}». Предлагай ответы.`;
+
+  const raw: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  for (const m of context.messages) {
+    raw.push({
+      role: m.isOutgoing ? 'assistant' : 'user',
+      content: `[${m.author}]: ${m.text}`,
+    });
+  }
+  raw.push({ role: 'user', content: 'Предложи варианты ответа.' });
+
+  // Collapse consecutive same-role messages (Anthropic requires alternation)
+  const messages: Array<{ role: string; content: string }> = [];
+  for (const m of raw) {
+    if (messages.length > 0 && messages[messages.length - 1].role === m.role) {
+      messages[messages.length - 1].content += '\n' + m.content;
+    } else {
+      messages.push({ ...m });
+    }
+  }
+
+  // Ensure first message is user
+  if (messages.length === 0 || messages[0].role !== 'user') {
+    messages.unshift({ role: 'user', content: 'Предложи ответ.' });
+  }
+
+  return { system, model, messages, max_tokens: 1024 };
 }

@@ -1,4 +1,4 @@
-import { clampSuggestionCount } from '../lib/types';
+import { clampSuggestionCount, type Settings } from '../lib/types';
 // Options page script — save/load settings
 
 /** Per-provider model suggestions */
@@ -33,6 +33,7 @@ const DEFAULTS: Omit<Settings, 'baseUrl'> & { baseUrl: string } = {
   autoTrigger: false,
   suggestionCount: 3,
   systemPrompt: '',
+  onboardingCompleted: false,
 };
 
 // DOM refs
@@ -262,26 +263,8 @@ el.provider.addEventListener('change', () => {
   updateConditionalUI();
 });
 
-// Save
-document.getElementById('saveBtn')!.addEventListener('click', () => {
-  chrome.storage.local.set(
-    {
-      provider: fields.provider.value,
-      apiKey: fields.apiKey.value,
-      model: fields.model.value,
-      baseUrl: fields.baseUrl.value,
-      systemPrompt: fields.systemPrompt.value,
-      suggestionCount: clampSuggestionCount(fields.suggestionCount.value),
-    },
-    () => {
-      const btn = document.getElementById('saveBtn')!;
-      btn.textContent = '✓ Сохранено';
-      setTimeout(() => {
-        btn.textContent = 'Сохранить';
-      }, 1500);
-    },
-  );
-});
+// Save (secondary handler removed — saveSettings() above handles saves)
+document.getElementById('saveBtn')!.addEventListener('click', saveSettings);
 
 // Clear invalid state on input
 for (const input of [el.apiKey, el.model, el.baseUrl]) {

@@ -1,5 +1,5 @@
 import type { AIProvider, ChatContext } from '../types';
-import { parseSuggestions } from './openai';
+import { parseSuggestions } from './claude-code';
 
 export interface OllamaProviderConfig {
   model: string;

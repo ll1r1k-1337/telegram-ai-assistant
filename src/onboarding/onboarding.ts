@@ -6,8 +6,8 @@ let selectedProvider = 'openai';
 
 const steps = document.querySelectorAll<HTMLElement>('.step');
 const progressFill = document.getElementById('progressFill')!;
-const backBtn = document.getElementById('backBtn')!;
-const nextBtn = document.getElementById('nextBtn')!;
+const backBtn = document.getElementById('backBtn') as HTMLButtonElement;
+const nextBtn = document.getElementById('nextBtn') as HTMLButtonElement;
 const stepCounter = document.getElementById('stepCounter')!;
 const footer = document.getElementById('wizardFooter')!;
 

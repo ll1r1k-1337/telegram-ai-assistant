@@ -6,6 +6,8 @@ import {
   extractTimestamp,
   extractReplyTo,
   parseMessageElement,
+  findBubbles,
+  getLastMessages,
   parseMessages,
   detectChatType,
   extractChatName,
@@ -14,6 +16,13 @@ import {
   getCurrentChatIdentity,
   buildChatContextWithIdentity,
 } from './parser';
+
+/** Helper: parse an HTML string into an Element */
+function el(html: string): Element {
+  const div = document.createElement('div');
+  div.innerHTML = html.trim();
+  return div.firstElementChild!;
+}
 
 /** Helper: build a Telegram-K-style message bubble */
 function makeBubble(opts: {

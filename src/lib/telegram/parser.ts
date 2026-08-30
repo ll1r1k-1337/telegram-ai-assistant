@@ -150,8 +150,37 @@ export function getLastMessages(
     if (msg) parsed.push(msg);
   }
 
+  // Take last N messages
+  return parsed.slice(-safeN);
+}
+
+/**
+ * Detect chat type (private vs group) from messages container.
+ * If multiple distinct authors are found, it's a group chat.
+ */
+export function detectChatType(container: Element): 'private' | 'group' | 'channel' {
+  const bubbles = findBubbles(container);
+  const authors = new Set<string>();
+  for (const bubble of bubbles) {
+    const author = extractAuthor(bubble);
+    if (author && author !== 'Вы') authors.add(author);
+  }
   if (authors.size >= 2) return 'group';
   return 'private';
+}
+
+/**
+ * Parse all text messages from a container element.
+ * Returns an array of ChatMessage objects ordered chronologically.
+ */
+export function parseMessages(container: Element): ChatMessage[] {
+  const bubbles = findBubbles(container);
+  const parsed: ChatMessage[] = [];
+  for (const bubble of bubbles) {
+    const msg = parseMessageElement(bubble);
+    if (msg) parsed.push(msg);
+  }
+  return parsed;
 }
 
 /** Extract chat name from a header element. */

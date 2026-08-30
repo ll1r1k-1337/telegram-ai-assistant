@@ -76,6 +76,7 @@ npm run build
 | **Anthropic** | Claude 3.5 Sonnet, Claude 3 Opus | Требуется API-ключ |
 | **Ollama** | Любая модель (llama3, mistral, …) | Локально, бесплатно |
 | **Custom** | Любой OpenAI-compatible endpoint | Свой URL + ключ |
+| **Claude Code CLI** | Все модели Claude (через подписку) | Не нужен API-ключ — работает через Native Messaging Host или локальный прокси. Требуется [Claude Code CLI](https://code.claude.com) с активной подпиской Pro/Max |
 
 ## Настройка
 

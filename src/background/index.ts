@@ -1,7 +1,31 @@
 // Background Service Worker — telegram-ai-assistant
 // Handles AI API requests and message passing with content scripts
 
-import { clampSuggestionCount } from '../lib/types';
+import {
+  clampSuggestionCount,
+  type AuthData,
+  type ChatContext,
+  type StreamCallback,
+  type StreamRequest,
+  type Settings,
+  STREAM_PORT_NAME,
+  streamOverPort,
+} from '../lib/types';
+
+/** Retrieve settings with decrypted API key from storage */
+async function getSettingsWithDecryptedKey(): Promise<Settings> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(null, (result) => {
+      resolve(result as unknown as Settings);
+    });
+  });
+}
+
+/** Check if a chat name is in the blacklist (case-insensitive) */
+function isBlacklisted(chatName: string, list: string[]): boolean {
+  const needle = chatName.toLowerCase();
+  return list.some((entry) => entry.toLowerCase() === needle);
+}
 
 console.log('[TG-AI] Background service worker started');
 
@@ -31,7 +55,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'GENERATE_REPLY') {
     handleGenerateReply(message.payload)
       .then(sendResponse)
-      .catch((err) => sendResponse({ error: err.message }));
+      .catch((err: Error) => sendResponse({ error: err.message }));
     return true; // async response
   }
 
